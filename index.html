@@ -988,6 +988,7 @@
                 <div id="authSection" class="profile-card auth-section active">
                     <h3>👤 Sign Up / Login</h3>
                     <form class="auth-form" id="authForm">
+                        <input type="text" id="signupName" placeholder="Full Name (optional)">
                         <input type="email" id="authEmail" placeholder="Email" required>
                         <input type="password" id="authPassword" placeholder="Password" required>
                         <button type="submit" id="authSubmit" class="small-btn">Sign Up</button>
@@ -1266,6 +1267,25 @@
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
 
+        // NEW: Debounce utility for input events
+        function debounce(fn, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        // NEW: Letter grade mapping
+        function getLetterGrade(avg) {
+            const numAvg = parseFloat(avg);
+            if (numAvg >= 90) return 'A';
+            if (numAvg >= 80) return 'B';
+            if (numAvg >= 70) return 'C';
+            if (numAvg >= 60) return 'D';
+            return 'F';
+        }
+
         // JS Fallback for www redirect (uncomment if no custom domain)
         /*
         if (window.location.hostname === 'www.suahco4.github.io') {
@@ -1314,6 +1334,7 @@
                     document.getElementById('authForm').reset();
                     document.getElementById('authError').textContent = '';
                     loadProfile();
+                    closeMobileNav(); // NEW: Close nav after auth
                 })
                 .catch((error) => {
                     console.error('Sign Up Error:', error);
@@ -1330,6 +1351,7 @@
                     document.getElementById('authForm').reset();
                     document.getElementById('authError').textContent = '';
                     loadProfile();
+                    closeMobileNav(); // NEW: Close nav after auth
                 })
                 .catch((error) => {
                     console.error('Sign In Error:', error);
@@ -1345,6 +1367,7 @@
                 currentUser = null;
                 updateAuthUI();
                 showSection('grades');
+                closeMobileNav(); // NEW: Close nav after logout
             }).catch((error) => {
                 console.error('Sign Out Error:', error);
             });
@@ -1414,10 +1437,11 @@
             }
         }
 
-        // Event delegation for real-time color updates on all score inputs
+        // UPDATED: Event delegation for real-time color updates (now debounced)
+        const debouncedUpdateColor = debounce(updateScoreColor, 300);
         document.addEventListener('input', function(e) {
             if (e.target.type === 'number' && e.target.closest('#gradeTable')) {
-                updateScoreColor(e.target);
+                debouncedUpdateColor(e.target);
             }
         });
 
@@ -1515,8 +1539,13 @@
             document.body.removeChild(link);
         }
 
-        // Download table as PDF (filtered to active columns)
+        // UPDATED: Download table as PDF (filtered to active columns, with checks & footer)
         function downloadPDF() {
+            // NEW: Enhanced check
+            if (activeColumns.length === 0) {
+                alert('No scores entered. Calculate averages first!');
+                return;
+            }
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'landscape' });
@@ -1571,6 +1600,11 @@
                 doc.text(`Filtered to entered data${periodStr}`, 14, 20);
                 doc.setFontSize(12);
                 doc.text(`Overall Average: ${document.getElementById('overallAverage').textContent}`, 14, doc.lastAutoTable.finalY + 10);
+
+                // NEW: Add timestamp footer
+                const pageHeight = doc.internal.pageSize.height;
+                doc.setFontSize(8);
+                doc.text(`Generated: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
 
                 // Filename with periods
                 const includeDate = localStorage.getItem('dateInExport') !== 'false';
@@ -1681,10 +1715,11 @@
             }
         }
 
-        // Function to display result
+        // UPDATED: Function to display result (now includes letter grade)
         function displayResult(average) {
             const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = `<div class="result">Overall Average Grade: ${average}%</div>`;
+            const letter = getLetterGrade(average);
+            resultDiv.innerHTML = `<div class="result">Overall Average Grade: ${average}% (${letter})</div>`;
         }
 
         // Function to show error
@@ -1743,6 +1778,8 @@
                 document.getElementById('navProfilePic').src = picSrc;
                 generateStats();
                 loadSessions();
+                // NEW: Refresh stats on load
+                if (lastOverallAvg !== '0.00') generateStats();
             }
         }
 
@@ -1821,6 +1858,7 @@
             });
         }
 
+        // UPDATED: Load session (now auto-recalculates)
         function loadSession(id) {
             const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
             const session = sessions.find(s => s.id === id);
@@ -1836,8 +1874,8 @@
                         if (inputs[i]) inputs[i].value = score;
                     });
                 });
-                // Recalculate
-                calculateAverages();
+                // NEW: Auto-recalculate after DOM update
+                setTimeout(() => calculateAverages(), 100);
                 showSection('grades');
                 alert('Session loaded!');
             }
@@ -1881,7 +1919,7 @@
             `;
         }
 
-        // Contact functions (updated with EmailJS + Auto-Reply)
+        // UPDATED: Contact functions (updated with EmailJS + Auto-Reply, safer logs)
         function submitContactForm(e) {
             e.preventDefault();
             const name = document.getElementById('contactName').value.trim();
@@ -1894,8 +1932,8 @@
                 return;
             }
 
-            // Log for debugging
-            console.log('Contact Form Submitted:', { name, email, subject, message });
+            // UPDATED: Safer logging (no full message)
+            console.log('Contact Form Submitted:', { name, email, subject: subject.substring(0, 20) + '...' });
 
             // Send main contact email via EmailJS
             emailjs.send('service_t4jdpwc', 'template_bq7h8n6', {
@@ -2093,15 +2131,15 @@
                 }
             });
 
-            // Auth form submit
+            // UPDATED: Auth form submit (now grabs name from new field)
             document.getElementById('authForm').addEventListener('submit', function(e) {
                 e.preventDefault();
+                const name = document.getElementById('signupName').value.trim(); // NEW: From form field
                 const email = document.getElementById('authEmail').value;
                 const password = document.getElementById('authPassword').value;
-                const name = document.getElementById('userName').value || email.split('@')[0];
                 const submitBtn = document.getElementById('authSubmit');
                 if (submitBtn.textContent === 'Sign Up') {
-                    signUpWithEmail(email, password, name);
+                    signUpWithEmail(email, password, name || email.split('@')[0]); // Fallback if empty
                 } else {
                     signInWithEmail(email, password);
                 }
