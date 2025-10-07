@@ -1286,6 +1286,25 @@
             return 'F';
         }
 
+        // NEW: Load watermark image as base64 (called on init)
+        function loadWatermarkImage() {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                window.watermarkImg = canvas.toDataURL('image/png'); // Base64 PNG
+                console.log('Watermark image loaded successfully.');
+            };
+            img.onerror = function() {
+                console.warn('Failed to load watermark image (Suahco4.png). PDF will generate without watermark.');
+                window.watermarkImg = null;
+            };
+            img.src = 'Suahco4.png';
+        }
+
         // JS Fallback for www redirect (uncomment if no custom domain)
         /*
         if (window.location.hostname === 'www.suahco4.github.io') {
@@ -1539,7 +1558,7 @@
             document.body.removeChild(link);
         }
 
-        // UPDATED: Download table as PDF (filtered to active columns, with checks & footer)
+        // UPDATED: Download table as PDF (filtered to active columns, with checks, footer, & watermark)
         function downloadPDF() {
             // NEW: Enhanced check
             if (activeColumns.length === 0) {
@@ -1581,7 +1600,12 @@
                     return;
                 }
 
-                // Add table to PDF
+                // NEW: Watermark settings
+                const watermarkScale = 0.2; // Scale factor (0.2 = 20% of page width)
+                const watermarkOpacity = 0.1; // Transparency (0.1 = very subtle)
+                const watermarkRotation = 45; // Degrees (0 for straight)
+
+                // Add table to PDF with didDrawPage hook for watermark
                 doc.autoTable({
                     head: [tableHeaders],
                     body: tableData,
@@ -1589,7 +1613,27 @@
                     theme: 'grid',
                     styles: { fontSize: 8, cellPadding: 2 },
                     headStyles: { fillColor: [44, 73, 94] }, // Dark blue header
-                    margin: { left: 10, right: 10 }
+                    margin: { left: 10, right: 10 },
+                    didDrawPage: function (data) {
+                        // Add watermark if image is loaded
+                        if (window.watermarkImg) {
+                            const pageWidth = doc.internal.pageSize.getWidth();
+                            const pageHeight = doc.internal.pageSize.getHeight();
+                            const imgWidth = pageWidth * watermarkScale;
+                            const imgHeight = (imgWidth / img.naturalWidth) * img.naturalHeight; // Maintain aspect ratio
+
+                            // Center position
+                            const x = (pageWidth - imgWidth) / 2;
+                            const y = (pageHeight - imgHeight) / 2;
+
+                            // Save context, set opacity, rotate, draw, restore
+                            doc.save();
+                            doc.setGState(new doc.GState({ opacity: watermarkOpacity }));
+                            doc.rotate(watermarkRotation, x + imgWidth / 2, y + imgHeight / 2); // Rotate around center
+                            doc.addImage(window.watermarkImg, 'PNG', x, y, imgWidth, imgHeight);
+                            doc.restore();
+                        }
+                    }
                 });
 
                 // Add title, periods note, and overall avg
@@ -2113,6 +2157,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             // FIXED: Force close mobile nav on load/refresh
             closeMobileNav();
+
+            // NEW: Load watermark image
+            loadWatermarkImage();
 
             // Initialize EmailJS
             emailjs.init('mMoFbLBQtA226NQY_');
