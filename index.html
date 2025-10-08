@@ -818,7 +818,7 @@
                 <!-- Download buttons (hidden initially) -->
                 <div>
                     <button id="downloadBtn" style="display: none; background-color: #f39c12;" onclick="downloadCSV()">Download CSV</button>
-                    <button id="pdfBtn" style="display: none; background-color: #9b59b6;" onclick="downloadPDF()">Download PDF</button>
+                    <button id="pdfBtn" style="display: none; background-color: #9b59b6;">Download PDF</button>
                 </div>
             </div>
             
@@ -1267,6 +1267,61 @@
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
 
+        // NEW: Helper to create semi-transparent base64 image for watermark
+        function createWatermarkImage(imgUrl, opacity = 0.2) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // For local files, this is fine
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // Draw original image
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Apply opacity by drawing a semi-transparent overlay (simple hack)
+                    ctx.globalAlpha = opacity;
+                    ctx.fillStyle = 'white'; // Or use a color tint if desired
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.globalAlpha = 1; // Reset
+                    
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = () => reject(new Error('Failed to load watermark image'));
+                img.src = imgUrl;
+            });
+        }
+
+        // NEW: Helper to add watermark to PDF (called after table)
+        async function addWatermarkToPDF(doc, watermarkBase64) {
+            const pageCount = doc.internal.getNumberOfPages();
+            const imgWidth = 100; // Scale down for watermark size
+            const imgHeight = 100; // Adjust ratio if needed
+            const angle = 45; // Diagonal angle
+
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                
+                // Calculate center position
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const centerX = pageWidth / 2;
+                const centerY = pageHeight / 2;
+                
+                // Rotate and translate for diagonal placement
+                doc.save();
+                doc.translate(centerX, centerY);
+                doc.rotate(angle * (Math.PI / 180));
+                
+                // Add image (slightly offset for better centering)
+                doc.addImage(watermarkBase64, 'PNG', -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+                
+                doc.restore();
+            }
+        }
+
         // NEW: Debounce utility for input events
         function debounce(fn, delay) {
             let timeout;
@@ -1539,8 +1594,8 @@
             document.body.removeChild(link);
         }
 
-        // UPDATED: Download table as PDF (filtered to active columns, with checks & footer)
-        function downloadPDF() {
+        // UPDATED: Download table as PDF (now async with watermark)
+        async function downloadPDF() {
             // NEW: Enhanced check
             if (activeColumns.length === 0) {
                 alert('No scores entered. Calculate averages first!');
@@ -1601,6 +1656,16 @@
                 doc.setFontSize(12);
                 doc.text(`Overall Average: ${document.getElementById('overallAverage').textContent}`, 14, doc.lastAutoTable.finalY + 10);
 
+                // NEW: Add watermark (load and apply)
+                try {
+                    const watermarkBase64 = await createWatermarkImage('Suahco4.png', 0.2); // 20% opacity
+                    await addWatermarkToPDF(doc, watermarkBase64);
+                    console.log('Watermark added successfully');
+                } catch (imgError) {
+                    console.warn('Watermark image failed to load:', imgError.message);
+                    // Graceful fallback: No watermark
+                }
+
                 // NEW: Add timestamp footer
                 const pageHeight = doc.internal.pageSize.height;
                 doc.setFontSize(8);
@@ -1618,6 +1683,14 @@
                 console.error('PDF Export Error:', err);
                 showError('PDF export failed. Check console or try smaller table.');
             }
+        }
+
+        // UPDATED: Button onclick to handle async PDF (wrap in promise for seamless UX)
+        function triggerPDFDownload() {
+            downloadPDF().catch(err => {
+                console.error('Download trigger error:', err);
+                alert('PDF generation failed. Please try again.');
+            });
         }
 
         // Function to calculate averages
@@ -2123,6 +2196,12 @@
             // Bind main buttons
             document.getElementById('addSubject').addEventListener('click', () => addSubjectRow(''));
             document.getElementById('calculate').addEventListener('click', calculateAverages);
+            
+            // UPDATED: PDF button onclick (now async-safe)
+            const pdfBtn = document.getElementById('pdfBtn');
+            if (pdfBtn) {
+                pdfBtn.onclick = triggerPDFDownload; // Use wrapper for async
+            }
             
             // Event delegation for remove buttons (dynamic)
             document.addEventListener('click', function(e) {
