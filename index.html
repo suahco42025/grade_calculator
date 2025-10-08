@@ -973,6 +973,28 @@
             background-color: #1e3a2f;
             color: #a3e4d7;
         }
+        /* NEW: Progress Bar Styles */
+        #progressBar {
+            display: none;
+            margin-top: 10px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+        }
+        #progressBar > div {
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+        body.dark-mode #progressBar {
+            background-color: #34495e;
+        }
+        body.dark-mode #progressBar > div {
+            background: linear-gradient(90deg, #a3e4d7, #d5f4e6);
+        }
     </style>
 </head>
 <body>
@@ -1058,6 +1080,8 @@
             </table>
             
             <div id="result"></div>
+            <!-- NEW: Progress Bar -->
+            <div id="progressBar"><div></div></div>
             <div id="error" class="error"></div>
         </section>
 
@@ -1234,7 +1258,7 @@
                 </div>
             </div>
             
-            <!-- NEW: Session Edit Modal -->
+            <!-- NEW: Session Edit Modal (with modal error div) -->
             <div id="editSessionModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -1242,6 +1266,8 @@
                         <button class="close-modal" onclick="closeEditModal()">&times;</button>
                     </div>
                     <p id="editSessionTimestamp" class="small-text">Editing session from: ...</p>
+                    <!-- NEW: Modal Error Div -->
+                    <div id="modalError" class="error" style="display: none;"></div>
                     <div class="controls" style="justify-content: flex-start; margin-bottom: 10px;">
                         <button id="addSubjectModal" style="padding: 8px 16px; font-size: 14px;">Add Subject</button>
                         <button id="calculateModal" style="padding: 8px 16px; font-size: 14px; background-color: #e74c3c;">Calculate</button>
@@ -1297,7 +1323,7 @@
                         <p><em>Or transfer directly from your Orange Money app/wallet.</em></p>
                     </div>
                     
-                    <p class="donate-phone" id="donatePhone">+231 778 662-590</p> <!-- UPDATE THIS TO YOUR ACTUAL DONATION NUMBER -->
+                    <p class="donate-phone" id="donatePhone">+231 778 662-590</p> <!-- Dynamically set via JS -->
                     <button class="donate-btn copy-btn" onclick="copyToClipboard('donatePhone')">Copy Phone Number</button>
                     
                     <p class="small-text" style="margin-top: 15px;">We appreciate your support! Questions? <a href="#" onclick="showSection('contact')">Contact us</a>.</p>
@@ -1529,6 +1555,11 @@
     </footer>
 
     <script>
+        // NEW: Config Object (easy to update)
+        const CONFIG = {
+            donationPhone: '+231 778 662-590' // UPDATE THIS TO YOUR ACTUAL DONATION NUMBER
+        };
+
         let subjectCount = 0;
         const numScoreColumns = 8; // 1st,2nd,3rd,Exam1,4th,5th,6th,Exam2
         const columnIdMap = ['avg1', 'avg2', 'avg3', 'avgExam1', 'avg4', 'avg5', 'avg6', 'avgExam2'];
@@ -1540,7 +1571,7 @@
         let currentUser = null; // Firebase user
         let editingSessionId = null; // NEW: Track which session is being edited
 
-        // NEW: Helper to create semi-transparent base64 image for watermark
+        // UPDATED: Helper to create semi-transparent base64 image for watermark (with text fallback)
         function createWatermarkImage(imgUrl, opacity = 0.2) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -1562,7 +1593,20 @@
                     
                     resolve(canvas.toDataURL('image/png'));
                 };
-                img.onerror = () => reject(new Error('Failed to load watermark image'));
+                img.onerror = () => {
+                    console.warn('Image watermark failed; using text fallback');
+                    // Fallback: Create a simple canvas with text
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 200; canvas.height = 100;
+                    ctx.globalAlpha = opacity;
+                    ctx.fillStyle = '#3498db';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Grade Calculator', 100, 50);
+                    ctx.globalAlpha = 1;
+                    resolve(canvas.toDataURL('image/png'));
+                };
                 img.src = imgUrl;
             });
         }
@@ -1614,9 +1658,9 @@
             return 'F';
         }
 
-        // NEW: Copy to clipboard function (for donate phone)
+        // UPDATED: Copy to clipboard function (for donate phone)
         function copyToClipboard(elementId) {
-            const text = document.getElementById(elementId).textContent;
+            const text = CONFIG.donationPhone; // Use config
             navigator.clipboard.writeText(text).then(() => {
                 alert('Phone number copied! Open Orange Money and paste to transfer.');
             }).catch(() => {
@@ -1630,6 +1674,11 @@
                 alert('Phone number copied! Open Orange Money and paste to transfer.');
             });
         }
+
+        // Set donation phone dynamically
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('donatePhone').textContent = CONFIG.donationPhone;
+        });
 
         // JS Fallback for www redirect (uncomment if no custom domain)
         /*
@@ -1792,13 +1841,13 @@
             }
         });
 
-        // Function to add a new subject row (with optional default name)
+        // UPDATED: Function to add a new subject row (with ARIA labels)
         function addSubjectRow(defaultName = '', tableId = '#gradeTable') {
             const tbody = document.querySelector(`${tableId} tbody`);
             const row = document.createElement('tr');
             let scoreInputs = '';
             for (let i = 0; i < numScoreColumns; i++) {
-                scoreInputs += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
+                scoreInputs += `<td><input type="number" min="0" max="100" placeholder="Score" aria-label="${columnNames[i]} Score"></td>`;
             }
             row.innerHTML = `
                 <td>
@@ -1954,7 +2003,7 @@
                     console.log('Watermark added successfully');
                 } catch (imgError) {
                     console.warn('Watermark image failed to load:', imgError.message);
-                    // Graceful fallback: No watermark
+                    // Graceful fallback: No watermark (text fallback already in createWatermarkImage)
                 }
 
                 // NEW: Add timestamp footer
@@ -1988,13 +2037,13 @@
             });
         }
 
-        // Function to calculate averages
-        function calculateAverages(tableId = '#gradeTable', resultId = 'result', overallAvgId = 'overallAverage') {
+        // UPDATED: Function to calculate averages (with errorCallback + auto-save guard)
+        function calculateAverages(tableId = '#gradeTable', resultId = 'result', overallAvgId = 'overallAverage', errorCallback = showError) {
             try {
                 const table = document.querySelector(tableId);
                 const rows = table.querySelectorAll('tbody tr');
                 if (rows.length === 0) {
-                    showError('Please add at least one subject.');
+                    errorCallback('Please add at least one subject.');
                     return '0.00';
                 }
 
@@ -2033,7 +2082,7 @@
 
                         let score = parseFloat(input.value);
                         if (isNaN(score) || score < 0 || score > 100) {
-                            showError('Scores must be numbers between 0 and 100.');
+                            errorCallback('Scores must be numbers between 0 and 100.');
                             return '0.00';
                         }
                         if (score > 100) score = 100; // Clamp to 100
@@ -2053,7 +2102,7 @@
                 }
 
                 if (invalidSubjects.length > 0) {
-                    showError(`Please name subjects in rows: ${invalidSubjects.join(', ')}`);
+                    errorCallback(`Please name subjects in rows: ${invalidSubjects.join(', ')}`);
                     return '0.00';
                 }
 
@@ -2087,32 +2136,45 @@
                     displayResult(overallAvg, resultEl);
                 }
 
+                // NEW: Auto-save only if user logged in + data present + enabled
+                if (tableId === '#gradeTable' && currentUser && grandCount > 0 && localStorage.getItem('autoSaveEnabled') === 'true') {
+                    saveSession();
+                }
+
                 clearError();
                 return overallAvg;
             } catch (err) {
                 console.error(err);
-                showError('An unexpected error occurred. Check the console for details.');
+                errorCallback('An unexpected error occurred. Check the console for details.');
                 return '0.00';
             }
         }
 
-        // UPDATED: Function to display result (now includes letter grade)
+        // UPDATED: Function to display result (now includes letter grade + progress bar)
         function displayResult(average, resultEl = document.getElementById('result')) {
             const letter = getLetterGrade(average);
             resultEl.innerHTML = `Overall Average Grade: ${average}% (${letter})`;
             resultEl.style.display = 'block';
+
+            // NEW: Update progress bar
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = progressBar.querySelector('div');
+            progressFill.style.width = `${Math.min(parseFloat(average), 100)}%`;
+            progressBar.style.display = 'block';
         }
 
-        // Function to show error
+        // UPDATED: Function to show error (now supports modal)
         function showError(message) {
             const errorDiv = document.getElementById('error');
             if (errorDiv) errorDiv.textContent = message;
         }
 
-        // Function to clear error
+        // UPDATED: Function to clear error (now supports modal)
         function clearError() {
             const errorDiv = document.getElementById('error');
             if (errorDiv) errorDiv.textContent = '';
+            const modalError = document.getElementById('modalError');
+            if (modalError) modalError.style.display = 'none';
         }
 
         // FIXED: Toggle mobile nav menu - now closes if open on section change
@@ -2224,8 +2286,15 @@
             // Bind modal buttons
             document.getElementById('addSubjectModal').onclick = () => addSubjectRow('', '#editSessionTable');
             document.getElementById('calculateModal').onclick = () => {
-                const avg = calculateAverages('#editSessionTable', 'editSessionResult', 'editSessionResult');
-                document.getElementById('editSessionResult').style.display = 'block';
+                const resultEl = document.getElementById('editSessionResult');
+                const avg = calculateAverages('#editSessionTable', 'editSessionResult', null, (msg) => {
+                    // Modal-specific error
+                    const modalError = document.getElementById('modalError');
+                    modalError.textContent = msg;
+                    modalError.style.display = 'block';
+                    setTimeout(() => modalError.style.display = 'none', 5000); // Auto-clear
+                });
+                resultEl.style.display = 'block';
             };
 
             // Bind remove buttons in modal
@@ -2246,9 +2315,10 @@
             // Clear modal table
             document.querySelector('#editSessionTable tbody').innerHTML = '';
             document.getElementById('editSessionResult').style.display = 'none';
+            clearError(); // Clear modal error too
         }
 
-        // NEW: Save Edited Session
+        // NEW: Save Edited Session (with quick validation)
         function saveEditedSession() {
             if (!editingSessionId) return;
 
@@ -2596,6 +2666,7 @@
                 columnIdMap.forEach(id => document.getElementById(id).textContent = '0.00');
                 document.getElementById('overallAverage').textContent = '0.00';
                 document.getElementById('result').innerHTML = '';
+                document.getElementById('progressBar').style.display = 'none'; // NEW: Hide progress bar
                 clearError();
                 alert('Data cleared! Back to defaults.');
                 showSection('grades');
@@ -2606,6 +2677,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             // FIXED: Force close mobile nav on load/refresh
             closeMobileNav();
+
+            // Set donation phone
+            document.getElementById('donatePhone').textContent = CONFIG.donationPhone;
 
             // Initialize EmailJS
             emailjs.init('mMoFbLBQtA226NQY_');
@@ -2674,18 +2748,6 @@
             toggleDownloadBtns(false);
             showSection('grades'); // This will also set initial SEO meta
         });
-
-        // NEW: Auto-save for logged-in users (updated to use new calculateAverages)
-        if (currentUser && lastOverallAvg !== '0.00') {
-            if (!localStorage.getItem('autoSaveEnabled')) {
-                if (confirm('Auto-save sessions after calculations? (You can disable in Settings)')) {
-                    localStorage.setItem('autoSaveEnabled', 'true');
-                }
-            }
-            if (localStorage.getItem('autoSaveEnabled') === 'true') {
-                saveSession(); // Reuse your existing function
-            }
-        }
     </script>
 </body>
 </html>
