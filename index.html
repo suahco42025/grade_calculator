@@ -355,6 +355,28 @@
             margin: 3px 0;
             transition: 0.3s;
         }
+        /* NEW: Spinner for PDF loading */
+        .loading-spinner {
+            display: none; /* Hidden by default */
+            text-align: center;
+            margin: 10px;
+        }
+        .loading-spinner.active {
+            display: block;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         /* Mobile: Hamburger menu - FIXED FOR REFRESH */
         @media (max-width: 768px) {
             .controls {
@@ -362,7 +384,8 @@
                 gap: 15px; /* Increased gap */
             }
             input[type="text"], input[type="number"] {
-                width: 80px; /* Increased from 50px for better mobile touch */
+                width: 90px; /* Slightly wider for touch */
+                min-height: 44px; /* iOS touch target minimum */
             }
             input[type="text"] {
                 width: 120px; /* Increased from 100px */
@@ -377,8 +400,9 @@
                 min-width: 100px; /* Adjusted for mobile */
             }
             .remove-btn {
-                padding: 6px 12px; /* Scaled for mobile */
+                padding: 8px 16px; /* Wider padding for touch */
                 font-size: 14px;
+                min-height: 44px;
             }
             .small-btn {
                 padding: 10px 18px; /* Scaled for mobile */
@@ -398,6 +422,16 @@
             }
             .nav-menu.active {
                 left: 0;
+            }
+            .nav-menu.active::before {
+                content: '';
+                position: fixed;
+                top: 60px;
+                left: 0;
+                width: 100%;
+                height: calc(100vh - 60px);
+                background: rgba(0,0,0,0.5);
+                z-index: -1;
             }
             .hamburger {
                 display: flex;
@@ -785,14 +819,14 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <a href="#" onclick="showSection('grades')">Grade Calculator</a>
+                <a href="#" onclick="showSection('grades'); return false;" aria-label="Navigate to Grades section">Grade Calculator</a>
             </div>
             <ul class="nav-menu" id="navMenu">
-                <li><a href="#" onclick="showSection('grades')">Grades</a></li>
-                <li><a href="#" onclick="showSection('profile')">Profile</a></li>
-                <li><a href="#" onclick="showSection('settings')">Settings</a></li>
-                <li><a href="#" onclick="showSection('help')">Help</a></li>
-                <li><a href="#" onclick="showSection('contact')">Contact</a></li>
+                <li><a href="#" onclick="showSection('grades'); return false;" aria-label="Navigate to Grades section">Grades</a></li>
+                <li><a href="#" onclick="showSection('profile'); return false;" aria-label="Navigate to Profile section">Profile</a></li>
+                <li><a href="#" onclick="showSection('settings'); return false;" aria-label="Navigate to Settings section">Settings</a></li>
+                <li><a href="#" onclick="showSection('help'); return false;" aria-label="Navigate to Help section">Help</a></li>
+                <li><a href="#" onclick="showSection('contact'); return false;" aria-label="Navigate to Contact section">Contact</a></li>
             </ul>
             <div class="nav-profile">
                 <img id="navProfilePic" src="Suahco4.png" alt="User profile avatar" class="profile-pic" onclick="toggleProfileMenu()">
@@ -818,7 +852,12 @@
                 <!-- Download buttons (hidden initially) -->
                 <div>
                     <button id="downloadBtn" style="display: none; background-color: #f39c12;" onclick="downloadCSV()">Download CSV</button>
-                    <button id="pdfBtn" style="display: none; background-color: #9b59b6;">Download PDF</button>
+                    <button id="pdfBtn" style="display: none; background-color: #9b59b6;" onclick="triggerPDFDownload()">Download PDF</button>
+                    <!-- NEW: PDF Spinner -->
+                    <div id="pdfSpinner" class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Generating PDF...</p>
+                    </div>
                 </div>
             </div>
             
@@ -1687,9 +1726,13 @@
 
         // UPDATED: Button onclick to handle async PDF (wrap in promise for seamless UX)
         function triggerPDFDownload() {
+            const spinner = document.getElementById('pdfSpinner');
+            spinner.classList.add('active');
             downloadPDF().catch(err => {
                 console.error('Download trigger error:', err);
                 alert('PDF generation failed. Please try again.');
+            }).finally(() => {
+                spinner.classList.remove('active');
             });
         }
 
@@ -1782,6 +1825,18 @@
                 generateStats(); // Update profile stats
                 clearError();
                 toggleDownloadBtns(true);
+
+                // NEW: Auto-save for logged-in users
+                if (currentUser && lastOverallAvg !== '0.00') {
+                    if (!localStorage.getItem('autoSaveEnabled')) {
+                        if (confirm('Auto-save sessions after calculations? (You can disable in Settings)')) {
+                            localStorage.setItem('autoSaveEnabled', 'true');
+                        }
+                    }
+                    if (localStorage.getItem('autoSaveEnabled') === 'true') {
+                        saveSession(); // Reuse your existing function
+                    }
+                }
             } catch (err) {
                 console.error(err);
                 showError('An unexpected error occurred. Check the console for details.');
@@ -2087,7 +2142,7 @@
             updateMetaForSection(section);
         }
 
-        // Toggle accordion sections
+        // UPDATED: Toggle accordion sections (with ARIA for accessibility)
         function toggleAccordion(header) {
             const content = header.nextElementSibling;
             const isActive = content.classList.contains('active');
@@ -2099,6 +2154,9 @@
             if (!isActive) {
                 content.classList.add('active');
             }
+            
+            // NEW: ARIA update
+            header.setAttribute('aria-expanded', !isActive);
         }
 
         // Load saved settings
@@ -2203,21 +2261,29 @@
                 pdfBtn.onclick = triggerPDFDownload; // Use wrapper for async
             }
             
-            // Event delegation for remove buttons (dynamic)
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('remove-btn')) {
-                    removeRow(e.target);
-                }
-            });
-
-            // UPDATED: Auth form submit (now grabs name from new field)
+            // UPDATED: Auth form submit (now grabs name from new field + validation)
             document.getElementById('authForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const name = document.getElementById('signupName').value.trim(); // NEW: From form field
-                const email = document.getElementById('authEmail').value;
-                const password = document.getElementById('authPassword').value;
+                const email = document.getElementById('authEmail').value.trim();
+                const password = document.getElementById('authPassword').value.trim();
                 const submitBtn = document.getElementById('authSubmit');
+
+                // NEW: Quick validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    document.getElementById('authError').textContent = 'Please enter a valid email.';
+                    return;
+                }
+                if (password.length < 6) {
+                    document.getElementById('authError').textContent = 'Password must be at least 6 characters.';
+                    return;
+                }
+
                 if (submitBtn.textContent === 'Sign Up') {
+                    if (!name) {
+                        if (!confirm('No name provided. Use email as display name?')) return;
+                    }
                     signUpWithEmail(email, password, name || email.split('@')[0]); // Fallback if empty
                 } else {
                     signInWithEmail(email, password);
@@ -2229,6 +2295,13 @@
 
             // Contact form submit
             document.getElementById('contactForm').addEventListener('submit', submitContactForm);
+
+            // Event delegation for remove buttons (dynamic)
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-btn')) {
+                    removeRow(e.target);
+                }
+            });
 
             // Load defaults
             const defaultSubjects = ['Mathematics', 'English', 'Science', 'History'];
