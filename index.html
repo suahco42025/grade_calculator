@@ -128,7 +128,6 @@
             overflow-x: auto; /* For horizontal scroll on small screens */
             margin-top: 70px; /* Clearance for fixed nav */
             position: relative;
-            touch-action: pan-x; /* NEW: Better mobile scrolling */
         }
         h1 {
             text-align: center;
@@ -874,7 +873,7 @@
         .profile-info { display: none; }
         .profile-info.active { display: block; }
 
-        /* NEW: Modal Styles for Session Edit (existing) */
+        /* NEW: Modal Styles for Session Edit */
         .modal {
             display: none;
             position: fixed;
@@ -973,79 +972,6 @@
         body.dark-mode .modal-result {
             background-color: #1e3a2f;
             color: #a3e4d7;
-        }
-
-        /* NEW: Donation Alert Modal Styles */
-        .donation-alert-modal {
-            display: none;
-            position: fixed;
-            z-index: 1001; /* Above other modals */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(243, 156, 18, 0.1); /* Subtle orange tint */
-            backdrop-filter: blur(3px);
-        }
-        .donation-alert-modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .donation-alert-content {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7); /* Warm gradient */
-            margin: auto;
-            padding: 25px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
-            position: relative;
-            border: 2px solid #f39c12;
-        }
-        body.dark-mode .donation-alert-content {
-            background: linear-gradient(135deg, #3d566e, #5a6c7d);
-            color: #ecf0f1;
-            border-color: #f39c12;
-        }
-        .donation-alert-header {
-            font-size: 20px;
-            color: #f39c12;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        body.dark-mode .donation-alert-header {
-            color: #f39c12;
-        }
-        .donation-alert-message {
-            font-size: 14px;
-            margin-bottom: 15px;
-            color: #666;
-        }
-        body.dark-mode .donation-alert-message {
-            color: #bdc3c7;
-        }
-        .donation-alert-phone {
-            font-size: 18px;
-            font-weight: bold;
-            color: #f39c12;
-            margin: 10px 0;
-            word-break: break-all;
-        }
-        .donation-alert-footer {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 15px;
-        }
-        .donation-dismiss-btn {
-            background-color: #95a5a6;
-            padding: 10px 20px;
-            font-size: 14px;
-        }
-        .donation-dismiss-btn:hover {
-            background-color: #7f8c8d;
         }
     </style>
 </head>
@@ -1244,17 +1170,6 @@
                     </label>
                 </div>
                 
-                <!-- NEW: Donation Alert Toggle -->
-                <div class="setting-card">
-                    <h3>❤️ Donation Alerts</h3>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="donationAlertsToggle" checked onchange="toggleDonationAlerts()">
-                        <span class="toggle-slider"></span>
-                        Show every 25 minutes
-                    </label>
-                    <p class="small-text">Prompts to support us via Orange Money. Non-intrusive and dismissible.</p>
-                </div>
-                
                 <div class="setting-card">
                     <h3>🗑️ Data Management</h3>
                     <button onclick="clearAllData()" class="clear-btn">Clear All Data & Reset</button>
@@ -1319,7 +1234,7 @@
                 </div>
             </div>
             
-            <!-- NEW: Session Edit Modal (existing) -->
+            <!-- NEW: Session Edit Modal -->
             <div id="editSessionModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -1358,23 +1273,10 @@
                 </div>
             </div>
             
-            <!-- NEW: Donation Alert Modal -->
-            <div id="donationAlertModal" class="donation-alert-modal">
-                <div class="donation-alert-content">
-                    <div class="donation-alert-header">❤️ Support Grade Calculator?</div>
-                    <p class="donation-alert-message">Thanks for using our free tool! Every 25 minutes, we gently remind you—your donation helps keep it running for students like you.</p>
-                    <p class="donate-phone" id="donatePhoneAlert">+231 778 662-590</p>
-                    <button class="donate-btn copy-btn" onclick="copyToClipboard('donatePhoneAlert'); dismissDonationAlert()">Copy & Donate</button>
-                    <div class="donation-alert-footer">
-                        <button class="small-btn donation-dismiss-btn" onclick="dismissDonationAlert()">Dismiss</button>
-                    </div>
-                </div>
-            </div>
-            
             <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
         </section>
 
-        <!-- Donate Section (hidden by default) -->
+        <!-- NEW: Donate Section (hidden by default) -->
         <section id="donate-section" class="donate-section" style="display: none;">
             <h1>Support Us - Donate</h1>
             
@@ -1636,13 +1538,7 @@
         let lastOverallAvg = '0.00'; // For stats
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
-        let editingSessionId = null; // Track which session is being edited
-
-        // NEW: Donation Alert Timer Variables
-        const DONATION_INTERVAL_MS = 25 * 60 * 1000; // 25 minutes
-        let donationTimer = null;
-        let sessionStartTime = null;
-        let lastDonationTime = localStorage.getItem('lastDonationTime') || null;
+        let editingSessionId = null; // NEW: Track which session is being edited
 
         // NEW: Helper to create semi-transparent base64 image for watermark
         function createWatermarkImage(imgUrl, opacity = 0.2) {
@@ -1666,10 +1562,7 @@
                     
                     resolve(canvas.toDataURL('image/png'));
                 };
-                img.onerror = () => {
-                    console.warn('Watermark image failed to load, using fallback');
-                    resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='); // Tiny transparent PNG fallback
-                };
+                img.onerror = () => reject(new Error('Failed to load watermark image'));
                 img.src = imgUrl;
             });
         }
@@ -1738,62 +1631,6 @@
             });
         }
 
-        // NEW: Donation Alert Functions
-        function initDonationTimer() {
-            if (!localStorage.getItem('donationAlertsEnabled')) {
-                localStorage.setItem('donationAlertsEnabled', 'true'); // Default enabled
-            }
-            if (localStorage.getItem('donationAlertsEnabled') !== 'true') return; // Disabled
-
-            sessionStartTime = performance.now();
-            checkDonationAlert();
-            donationTimer = setInterval(checkDonationAlert, 60000); // Check every minute
-        }
-
-        function checkDonationAlert() {
-            if (localStorage.getItem('donationAlertsEnabled') !== 'true') return;
-
-            const now = performance.now();
-            const elapsed = now - sessionStartTime;
-
-            if (lastDonationTime) {
-                const lastTime = parseInt(lastDonationTime);
-                const timeSinceLast = now - lastTime;
-                if (timeSinceLast >= DONATION_INTERVAL_MS) {
-                    showDonationAlert();
-                }
-            } else if (elapsed >= DONATION_INTERVAL_MS) {
-                showDonationAlert();
-            }
-        }
-
-        function showDonationAlert() {
-            document.getElementById('donationAlertModal').classList.add('active');
-        }
-
-        function dismissDonationAlert() {
-            document.getElementById('donationAlertModal').classList.remove('active');
-            localStorage.setItem('lastDonationTime', performance.now().toString());
-        }
-
-        function toggleDonationAlerts() {
-            const enabled = document.getElementById('donationAlertsToggle').checked;
-            localStorage.setItem('donationAlertsEnabled', enabled);
-            if (!enabled) {
-                dismissDonationAlert(); // Close if open
-                if (donationTimer) clearInterval(donationTimer);
-            } else {
-                initDonationTimer(); // Restart timer
-            }
-        }
-
-        // Hide donation modal on outside click
-        document.getElementById('donationAlertModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                dismissDonationAlert();
-            }
-        });
-
         // JS Fallback for www redirect (uncomment if no custom domain)
         /*
         if (window.location.hostname === 'www.suahco4.github.io') {
@@ -1830,7 +1667,7 @@
             }
         }
 
-        // Firebase Auth Functions (unchanged)
+        // Firebase Auth Functions
         function signUpWithEmail(email, password, name) {
             const { createUserWithEmailAndPassword, updateProfile } = window;
             const auth = window.auth;
@@ -2151,7 +1988,7 @@
             });
         }
 
-        // Function to calculate averages (unchanged from previous update)
+        // Function to calculate averages
         function calculateAverages(tableId = '#gradeTable', resultId = 'result', overallAvgId = 'overallAverage') {
             try {
                 const table = document.querySelector(tableId);
@@ -2210,7 +2047,7 @@
                         columnCounts[i]++;
                     }
 
-                    const subjectAvg = subjectValid > 0 ? Math.max(0, (subjectTotal / subjectValid).toFixed(2)) : '0.00'; // Clamp to >=0
+                    const subjectAvg = subjectValid > 0 ? (subjectTotal / subjectValid).toFixed(2) : '0.00';
                     if (avgCell) avgCell.textContent = subjectAvg;
                     lastSubjectAvgs.push({ name: subjectInput.value.trim(), avg: parseFloat(subjectAvg) });
                 }
@@ -2360,7 +2197,7 @@
             document.getElementById('navProfilePic').src = src;
         }
 
-        // NEW: Open Edit Modal for Session (unchanged)
+        // NEW: Open Edit Modal for Session
         function openEditModal(sessionId) {
             editingSessionId = sessionId;
             const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
@@ -2402,7 +2239,7 @@
             document.getElementById('editSessionModal').classList.add('active');
         }
 
-        // NEW: Close Edit Modal (unchanged)
+        // NEW: Close Edit Modal
         function closeEditModal() {
             document.getElementById('editSessionModal').classList.remove('active');
             editingSessionId = null;
@@ -2411,7 +2248,7 @@
             document.getElementById('editSessionResult').style.display = 'none';
         }
 
-        // NEW: Save Edited Session (unchanged)
+        // NEW: Save Edited Session
         function saveEditedSession() {
             if (!editingSessionId) return;
 
@@ -2457,7 +2294,7 @@
             alert('Session updated successfully!');
         }
 
-        // Hide modal on outside click (existing)
+        // Hide modal on outside click
         document.getElementById('editSessionModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeEditModal();
@@ -2684,7 +2521,7 @@
             header.setAttribute('aria-expanded', !isActive);
         }
 
-        // Load saved settings (UPDATED: Includes donation alerts toggle)
+        // Load saved settings
         function loadSettings() {
             // Theme
             const isDark = localStorage.getItem('darkMode') === 'true';
@@ -2704,10 +2541,6 @@
             // Date in export
             const dateInExport = localStorage.getItem('dateInExport') !== 'false';
             document.getElementById('dateInFilename').checked = dateInExport;
-            
-            // NEW: Donation alerts
-            const donationEnabled = localStorage.getItem('donationAlertsEnabled') !== 'false';
-            document.getElementById('donationAlertsToggle').checked = donationEnabled;
         }
 
         // Toggle dark mode
@@ -2752,7 +2585,7 @@
             localStorage.setItem('dateInExport', includeDate);
         }
 
-        // Clear all data (UPDATED: Resets donation timer)
+        // Clear all data
         function clearAllData() {
             if (confirm('Clear all subjects and scores? This cannot be undone.')) {
                 document.querySelector('#gradeTable tbody').innerHTML = '';
@@ -2764,14 +2597,12 @@
                 document.getElementById('overallAverage').textContent = '0.00';
                 document.getElementById('result').innerHTML = '';
                 clearError();
-                // NEW: Reset donation timer
-                localStorage.removeItem('lastDonationTime');
                 alert('Data cleared! Back to defaults.');
                 showSection('grades');
             }
         }
 
-        // Event listeners & Initial Load (UPDATED: Includes donation timer init)
+        // Event listeners & Initial Load
         document.addEventListener('DOMContentLoaded', function() {
             // FIXED: Force close mobile nav on load/refresh
             closeMobileNav();
@@ -2781,9 +2612,6 @@
 
             // Initialize Firebase Auth (now calls updateAuthUI immediately)
             initAuth();
-
-            // NEW: Initialize donation timer
-            initDonationTimer();
 
             // Bind main buttons
             document.getElementById('addSubject').addEventListener('click', () => addSubjectRow(''));
@@ -2813,12 +2641,11 @@
                     document.getElementById('authError').textContent = 'Password must be at least 6 characters.';
                     return;
                 }
-                if (submitBtn.textContent === 'Sign Up' && !name) {
-                    document.getElementById('authError').textContent = 'Name is required for sign-up.';
-                    return;
-                }
 
                 if (submitBtn.textContent === 'Sign Up') {
+                    if (!name) {
+                        if (!confirm('No name provided. Use email as display name?')) return;
+                    }
                     signUpWithEmail(email, password, name || email.split('@')[0]); // Fallback if empty
                 } else {
                     signInWithEmail(email, password);
@@ -2847,6 +2674,18 @@
             toggleDownloadBtns(false);
             showSection('grades'); // This will also set initial SEO meta
         });
+
+        // NEW: Auto-save for logged-in users (updated to use new calculateAverages)
+        if (currentUser && lastOverallAvg !== '0.00') {
+            if (!localStorage.getItem('autoSaveEnabled')) {
+                if (confirm('Auto-save sessions after calculations? (You can disable in Settings)')) {
+                    localStorage.setItem('autoSaveEnabled', 'true');
+                }
+            }
+            if (localStorage.getItem('autoSaveEnabled') === 'true') {
+                saveSession(); // Reuse your existing function
+            }
+        }
     </script>
 </body>
 </html>
