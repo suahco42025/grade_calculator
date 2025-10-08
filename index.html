@@ -26,6 +26,10 @@
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
 
+    <!-- NEW: Additional preloads for performance -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" as="script">
+    <link rel="dns-prefetch" href="//www.gstatic.com"> <!-- For Firebase -->
+
     <!-- Open Graph for Social Sharing -->
     <meta property="og:title" content="Grade Calculator | Free Online GPA & Average Tool">
     <meta property="og:description" content="Calculate grades, track progress, and export reports. Join thousands of students using our free tool.">
@@ -655,6 +659,11 @@
         body.dark-mode input { background-color: #3d566e; border-color: #5a6c7d; color: #ecf0f1; }
         body.dark-mode textarea { background-color: #3d566e; border-color: #5a6c7d; color: #ecf0f1; }
         body.dark-mode input::placeholder { color: #a0a0a0; opacity: 0.7; } /* Added for better dark mode placeholder visibility */
+        /* NEW: Enhanced dark mode placeholder visibility */
+        body.dark-mode input::placeholder, body.dark-mode textarea::placeholder {
+            color: #bdc3c7 !important; /* Lighter gray for readability */
+            opacity: 0.8 !important;
+        }
         /* Footer styling */
         footer {
             text-align: center;
@@ -1611,30 +1620,30 @@
             });
         }
 
-        // NEW: Helper to add watermark to PDF (called after table)
+        // UPDATED: Enhanced watermark (responsive scaling + text overlay)
         async function addWatermarkToPDF(doc, watermarkBase64) {
             const pageCount = doc.internal.getNumberOfPages();
-            const imgWidth = 100; // Scale down for watermark size
-            const imgHeight = 100; // Adjust ratio if needed
-            const angle = 45; // Diagonal angle
-
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
-                
-                // Calculate center position
                 const pageWidth = doc.internal.pageSize.getWidth();
                 const pageHeight = doc.internal.pageSize.getHeight();
                 const centerX = pageWidth / 2;
                 const centerY = pageHeight / 2;
                 
-                // Rotate and translate for diagonal placement
                 doc.save();
                 doc.translate(centerX, centerY);
-                doc.rotate(angle * (Math.PI / 180));
+                doc.rotate(45 * (Math.PI / 180)); // Diagonal
                 
-                // Add image (slightly offset for better centering)
+                // Scale dynamically (e.g., 30% of page width)
+                const imgWidth = pageWidth * 0.3;
+                const imgHeight = imgWidth * 0.75; // Maintain aspect
                 doc.addImage(watermarkBase64, 'PNG', -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
                 
+                // NEW: Add faint text overlay
+                doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100); // Gray
+                doc.setGState(new doc.GState({ opacity: 0.1 }));
+                doc.text('Grade Calculator © 2025', 0, imgHeight / 2 + 10);
                 doc.restore();
             }
         }
@@ -2318,7 +2327,7 @@
             clearError(); // Clear modal error too
         }
 
-        // NEW: Save Edited Session (with quick validation)
+        // UPDATED: Save Edited Session (with quick validation + empty check)
         function saveEditedSession() {
             if (!editingSessionId) return;
 
@@ -2345,8 +2354,9 @@
                 }
             });
 
-            if (editedData.length === 0) {
-                alert('At least one subject with a name is required.');
+            // NEW: Prevent saving empty sessions
+            if (editedData.length === 0 || editedData.every(item => !item.subject.trim())) {
+                alert('Cannot save empty session. Add at least one subject.');
                 return;
             }
 
@@ -2395,7 +2405,7 @@
             alert('Session saved!');
         }
 
-        // UPDATED: Load Sessions (now includes Edit button)
+        // UPDATED: Load Sessions (now includes Edit button + limit warning)
         function loadSessions() {
             const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
             const list = document.getElementById('sessionList');
@@ -2413,6 +2423,14 @@
                 `;
                 list.appendChild(li);
             });
+
+            // NEW: Add warning if nearing limit
+            if (sessions.length >= 4) {
+                const warning = document.createElement('p');
+                warning.className = 'error';
+                warning.textContent = `Storage almost full! (${sessions.length}/5 sessions) Delete old ones to save more.`;
+                list.parentNode.insertBefore(warning, list);
+            }
         }
 
         // UPDATED: Load session (now auto-recalculates)
@@ -2681,8 +2699,17 @@
             // Set donation phone
             document.getElementById('donatePhone').textContent = CONFIG.donationPhone;
 
-            // Initialize EmailJS
-            emailjs.init('mMoFbLBQtA226NQY_');
+            // UPDATED: Initialize EmailJS with error handling
+            try {
+                emailjs.init('YOUR_FULL_PUBLIC_KEY_HERE'); // Replace with your actual EmailJS public key
+            } catch (err) {
+                console.warn('EmailJS init failed:', err);
+                // Fallback: Show a message in contact form
+                const contactCard = document.querySelector('.contact-card');
+                if (contactCard) {
+                    contactCard.innerHTML += '<p class="error">Contact form temporarily unavailable. Email us directly.</p>';
+                }
+            }
 
             // Initialize Firebase Auth (now calls updateAuthUI immediately)
             initAuth();
@@ -2738,6 +2765,16 @@
                     removeRow(e.target);
                 }
             });
+
+            // NEW: Score clamping on blur (0-100)
+            document.addEventListener('blur', function(e) {
+                if (e.target.type === 'number' && e.target.closest('#gradeTable, #editSessionTable')) {
+                    let val = parseFloat(e.target.value);
+                    if (isNaN(val)) val = '';
+                    else val = Math.max(0, Math.min(100, val));
+                    e.target.value = val;
+                }
+            }, true);
 
             // Load defaults
             const defaultSubjects = ['Mathematics', 'English', 'Science', 'History'];
