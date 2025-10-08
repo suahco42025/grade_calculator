@@ -178,6 +178,27 @@
         #pdfBtn:hover {
             background-color: #8e44ad;
         }
+        /* NEW: Donate button styles */
+        .donate-btn {
+            background-color: #f39c12;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin: 10px 0;
+        }
+        .donate-btn:hover {
+            background-color: #e67e22;
+        }
+        .copy-btn {
+            background-color: #27ae60;
+        }
+        .copy-btn:hover {
+            background-color: #229954;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -621,7 +642,7 @@
         body.dark-mode table th {
             background-color: #1a252f;
         }
-        body.dark-mode .help-card, body.dark-mode .setting-card, body.dark-mode .profile-card, body.dark-mode .contact-card {
+        body.dark-mode .help-card, body.dark-mode .setting-card, body.dark-mode .profile-card, body.dark-mode .contact-card, body.dark-mode .donate-card {
             background: #3d566e;
             border-color: #5a6c7d;
         }
@@ -807,6 +828,43 @@
         .submit-btn:hover {
             background-color: #229954;
         }
+        /* NEW: Donate section styling */
+        .donate-section {
+            padding: 20px 0;
+        }
+        .donate-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .donate-card {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 20px;
+            text-align: center;
+        }
+        .donate-card h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .donate-phone {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f39c12;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .donate-instructions {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            text-align: left;
+        }
+        .donate-instructions ol {
+            padding-left: 20px;
+        }
         /* Hide/show classes for auth */
         .auth-section { display: none; }
         .auth-section.active { display: block; }
@@ -826,6 +884,7 @@
                 <li><a href="#" onclick="showSection('profile'); return false;" aria-label="Navigate to Profile section">Profile</a></li>
                 <li><a href="#" onclick="showSection('settings'); return false;" aria-label="Navigate to Settings section">Settings</a></li>
                 <li><a href="#" onclick="showSection('help'); return false;" aria-label="Navigate to Help section">Help</a></li>
+                <li><a href="#" onclick="showSection('donate'); return false;" aria-label="Navigate to Donate section">Donate</a></li>
                 <li><a href="#" onclick="showSection('contact'); return false;" aria-label="Navigate to Contact section">Contact</a></li>
             </ul>
             <div class="nav-profile">
@@ -1075,6 +1134,37 @@
             <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
         </section>
 
+        <!-- NEW: Donate Section (hidden by default) -->
+        <section id="donate-section" class="donate-section" style="display: none;">
+            <h1>Support Us - Donate</h1>
+            
+            <div class="donate-content">
+                <div class="donate-card">
+                    <h3>❤️ Thank You for Using Grade Calculator!</h3>
+                    <p>Your donations help us keep this tool free, add new features, and support students like you. Every contribution counts!</p>
+                    
+                    <div class="donate-instructions">
+                        <h4>How to Donate via Orange Money:</h4>
+                        <ol>
+                            <li>Dial <strong>*144#</strong> on your phone.</li>
+                            <li>Select <strong>1 - Money Transfer</strong>.</li>
+                            <li>Enter the donation phone number below.</li>
+                            <li>Enter amount (e.g., LRD 50, 100, or any amount).</li>
+                            <li>Confirm and send. Reference: "Grade Calculator Support".</li>
+                        </ol>
+                        <p><em>Or transfer directly from your Orange Money app/wallet.</em></p>
+                    </div>
+                    
+                    <p class="donate-phone" id="donatePhone">+231 778 662-590</p> <!-- UPDATE THIS TO YOUR ACTUAL DONATION NUMBER -->
+                    <button class="donate-btn copy-btn" onclick="copyToClipboard('donatePhone')">Copy Phone Number</button>
+                    
+                    <p class="small-text" style="margin-top: 15px;">We appreciate your support! Questions? <a href="#" onclick="showSection('contact')">Contact us</a>.</p>
+                </div>
+            </div>
+            
+            <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
+        </section>
+
         <!-- Contact Section (hidden by default) -->
         <section id="contact-section" class="contact-section" style="display: none;">
             <h1>Contact Us</h1>
@@ -1291,6 +1381,7 @@
                 <a href="#" onclick="showSection('privacy')">Privacy Policy</a>
                 <a href="#" onclick="showSection('terms')">Terms of Service</a>
                 <a href="#" onclick="showSection('contact')">Contact Us</a>
+                <a href="#" onclick="showSection('donate')">Donate</a>
             </div>
         </div>
     </footer>
@@ -1380,6 +1471,23 @@
             return 'F';
         }
 
+        // NEW: Copy to clipboard function (for donate phone)
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Phone number copied! Open Orange Money and paste to transfer.');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Phone number copied! Open Orange Money and paste to transfer.');
+            });
+        }
+
         // JS Fallback for www redirect (uncomment if no custom domain)
         /*
         if (window.location.hostname === 'www.suahco4.github.io') {
@@ -1395,6 +1503,7 @@
                 'settings': 'Settings | Grade Calculator - Customize Your Experience',
                 'profile': 'Profile | Grade Calculator - Manage Account & Sessions',
                 'contact': 'Contact Us | Grade Calculator - Get Support',
+                'donate': 'Donate | Support Grade Calculator - Orange Money Contributions',
                 'privacy': 'Privacy Policy | Grade Calculator - Data Protection',
                 'terms': 'Terms of Service | Grade Calculator - User Agreement'
             };
@@ -1407,6 +1516,7 @@
                     'grades': 'Track grades across periods & exams with our free Grade Matrix Calculator. Calculate averages, export PDF/CSV, save sessions. Mobile-friendly & secure.',
                     'help': 'Learn to use Grade Calculator: add subjects, calculate averages, export reports. Free GPA tool for students.',
                     'contact': 'Contact Grade Calculator team for support on our free GPA tool.',
+                    'donate': 'Support Grade Calculator with a donation via Orange Money. Help us keep this free tool running for students!',
                     'privacy': 'Grade Calculator Privacy Policy: how we protect your data.',
                     'terms': 'Grade Calculator Terms of Service: rules for using our free grading tool.'
                 };
@@ -2118,6 +2228,9 @@
                 const profileSec = document.getElementById('profile-section');
                 if (profileSec) profileSec.style.display = 'block';
                 loadProfile();
+            } else if (section === 'donate') {
+                const donateSec = document.getElementById('donate-section');
+                if (donateSec) donateSec.style.display = 'block';
             } else if (section === 'contact') {
                 const contactSec = document.getElementById('contact-section');
                 if (contactSec) contactSec.style.display = 'block';
