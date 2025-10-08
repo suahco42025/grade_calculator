@@ -2687,9 +2687,9 @@
             // Initialize Firebase Auth (now calls updateAuthUI immediately)
             initAuth();
 
-            // Bind main buttons
+            // FIXED: Bind main buttons (wrap calculateAverages to avoid event passing)
             document.getElementById('addSubject').addEventListener('click', () => addSubjectRow(''));
-            document.getElementById('calculate').addEventListener('click', calculateAverages);
+            document.getElementById('calculate').addEventListener('click', () => calculateAverages()); // ← THIS IS THE FIX
             
             // UPDATED: PDF button onclick (now async-safe)
             const pdfBtn = document.getElementById('pdfBtn');
