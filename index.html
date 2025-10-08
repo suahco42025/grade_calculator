@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Your existing <head> content remains unchanged -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade Calculator | Free Online GPA & Average Tool with PDF/CSV Export</title>
@@ -109,6 +110,7 @@
         window.updateProfile = updateProfile;
     </script>
     <style>
+        /* Your existing styles remain unchanged */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7fa;
@@ -870,6 +872,107 @@
         .auth-section.active { display: block; }
         .profile-info { display: none; }
         .profile-info.active { display: block; }
+
+        /* NEW: Modal Styles for Session Edit */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        body.dark-mode .modal-content {
+            background: #34495e;
+            color: #ecf0f1;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .modal-header h3 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .close-modal:hover {
+            color: #e74c3c;
+        }
+        .modal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .modal-table th, .modal-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        .modal-table input[type="text"] {
+            width: 120px;
+        }
+        .modal-table input[type="number"] {
+            width: 60px;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .edit-save-btn {
+            background-color: #27ae60;
+        }
+        .edit-save-btn:hover {
+            background-color: #229954;
+        }
+        .edit-cancel-btn {
+            background-color: #95a5a6;
+        }
+        .edit-cancel-btn:hover {
+            background-color: #7f8c8d;
+        }
+        .modal-result {
+            background-color: #d5f4e6;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            color: #27ae60;
+            margin-top: 10px;
+        }
+        body.dark-mode .modal-result {
+            background-color: #1e3a2f;
+            color: #a3e4d7;
+        }
     </style>
 </head>
 <body>
@@ -1110,7 +1213,7 @@
                     
                     <div class="profile-card">
                         <h3>💾 Saved Sessions</h3>
-                        <p>Save your current grades to load later.</p>
+                        <p>Save your current grades to load later. Use Edit to manually adjust sessions.</p>
                         <button onclick="saveSession()" class="small-btn">Save Current Session</button>
                         <ul id="sessionList" class="session-list"></ul>
                     </div>
@@ -1127,6 +1230,45 @@
                         <h3>🚪 Account Actions</h3>
                         <button onclick="logout()" class="clear-btn">Logout</button>
                         <p class="small-text">Clears session and logs you out.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- NEW: Session Edit Modal -->
+            <div id="editSessionModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Session</h3>
+                        <button class="close-modal" onclick="closeEditModal()">&times;</button>
+                    </div>
+                    <p id="editSessionTimestamp" class="small-text">Editing session from: ...</p>
+                    <div class="controls" style="justify-content: flex-start; margin-bottom: 10px;">
+                        <button id="addSubjectModal" style="padding: 8px 16px; font-size: 14px;">Add Subject</button>
+                        <button id="calculateModal" style="padding: 8px 16px; font-size: 14px; background-color: #e74c3c;">Calculate</button>
+                    </div>
+                    <table id="editSessionTable" class="modal-table">
+                        <thead>
+                            <tr>
+                                <th class="subject-th">Subject</th>
+                                <th>1st Period</th>
+                                <th>2nd Period</th>
+                                <th>3rd Period</th>
+                                <th>Exam 1</th>
+                                <th>4th Period</th>
+                                <th>5th Period</th>
+                                <th>6th Period</th>
+                                <th>Final</th>
+                                <th>Subject Average</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic rows for modal -->
+                        </tbody>
+                    </table>
+                    <div id="editSessionResult" class="modal-result" style="display: none;"></div>
+                    <div class="modal-footer">
+                        <button class="small-btn edit-cancel-btn" onclick="closeEditModal()">Cancel</button>
+                        <button class="small-btn edit-save-btn" onclick="saveEditedSession()">Save Changes</button>
                     </div>
                 </div>
             </div>
@@ -1396,6 +1538,7 @@
         let lastOverallAvg = '0.00'; // For stats
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
+        let editingSessionId = null; // NEW: Track which session is being edited
 
         // NEW: Helper to create semi-transparent base64 image for watermark
         function createWatermarkImage(imgUrl, opacity = 0.2) {
@@ -1644,15 +1787,14 @@
         // UPDATED: Event delegation for real-time color updates (now debounced)
         const debouncedUpdateColor = debounce(updateScoreColor, 300);
         document.addEventListener('input', function(e) {
-            if (e.target.type === 'number' && e.target.closest('#gradeTable')) {
+            if (e.target.type === 'number' && (e.target.closest('#gradeTable') || e.target.closest('#editSessionTable'))) {
                 debouncedUpdateColor(e.target);
             }
         });
 
         // Function to add a new subject row (with optional default name)
-        function addSubjectRow(defaultName = '') {
-            subjectCount++;
-            const tbody = document.querySelector('#gradeTable tbody');
+        function addSubjectRow(defaultName = '', tableId = '#gradeTable') {
+            const tbody = document.querySelector(`${tableId} tbody`);
             const row = document.createElement('tr');
             let scoreInputs = '';
             for (let i = 0; i < numScoreColumns; i++) {
@@ -1847,12 +1989,13 @@
         }
 
         // Function to calculate averages
-        function calculateAverages() {
+        function calculateAverages(tableId = '#gradeTable', resultId = 'result', overallAvgId = 'overallAverage') {
             try {
-                const rows = document.querySelectorAll('#gradeTable tbody tr');
+                const table = document.querySelector(tableId);
+                const rows = table.querySelectorAll('tbody tr');
                 if (rows.length === 0) {
                     showError('Please add at least one subject.');
-                    return;
+                    return '0.00';
                 }
 
                 const columnTotals = new Array(numScoreColumns).fill(0);
@@ -1862,10 +2005,13 @@
                 let invalidSubjects = [];
                 lastSubjectAvgs = []; // Reset for stats
 
-                columnIdMap.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = '0.00';
-                });
+                // Clear period avgs if main table
+                if (tableId === '#gradeTable') {
+                    columnIdMap.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.textContent = '0.00';
+                    });
+                }
 
                 for (let r = 0; r < rows.length; r++) {
                     const row = rows[r];
@@ -1888,7 +2034,7 @@
                         let score = parseFloat(input.value);
                         if (isNaN(score) || score < 0 || score > 100) {
                             showError('Scores must be numbers between 0 and 100.');
-                            return;
+                            return '0.00';
                         }
                         if (score > 100) score = 100; // Clamp to 100
 
@@ -1908,56 +2054,53 @@
 
                 if (invalidSubjects.length > 0) {
                     showError(`Please name subjects in rows: ${invalidSubjects.join(', ')}`);
-                    return;
+                    return '0.00';
                 }
 
-                for (let i = 0; i < numScoreColumns; i++) {
-                    const colAvg = columnCounts[i] > 0 ? (columnTotals[i] / columnCounts[i]).toFixed(2) : '0.00';
-                    const colId = columnIdMap[i];
-                    const el = document.getElementById(colId);
-                    if (el) el.textContent = colAvg;
+                // Update period avgs if main table
+                if (tableId === '#gradeTable') {
+                    for (let i = 0; i < numScoreColumns; i++) {
+                        const colAvg = columnCounts[i] > 0 ? (columnTotals[i] / columnCounts[i]).toFixed(2) : '0.00';
+                        const colId = columnIdMap[i];
+                        const el = document.getElementById(colId);
+                        if (el) el.textContent = colAvg;
+                    }
+
+                    // Track active columns (with data)
+                    activeColumns = [];
+                    for (let i = 0; i < numScoreColumns; i++) {
+                        if (columnCounts[i] > 0) {
+                            activeColumns.push(i);
+                        }
+                    }
+
+                    toggleDownloadBtns(true);
                 }
 
                 const overallAvg = grandCount > 0 ? (grandTotal / grandCount).toFixed(2) : '0.00';
                 lastOverallAvg = overallAvg;
-                const overallEl = document.getElementById('overallAverage');
+                const overallEl = document.getElementById(overallAvgId);
                 if (overallEl) overallEl.textContent = overallAvg + '%';
 
-                // Track active columns (with data)
-                activeColumns = [];
-                for (let i = 0; i < numScoreColumns; i++) {
-                    if (columnCounts[i] > 0) {
-                        activeColumns.push(i);
-                    }
+                const resultEl = document.getElementById(resultId);
+                if (resultEl) {
+                    displayResult(overallAvg, resultEl);
                 }
 
-                displayResult(overallAvg);
-                generateStats(); // Update profile stats
                 clearError();
-                toggleDownloadBtns(true);
-
-                // NEW: Auto-save for logged-in users
-                if (currentUser && lastOverallAvg !== '0.00') {
-                    if (!localStorage.getItem('autoSaveEnabled')) {
-                        if (confirm('Auto-save sessions after calculations? (You can disable in Settings)')) {
-                            localStorage.setItem('autoSaveEnabled', 'true');
-                        }
-                    }
-                    if (localStorage.getItem('autoSaveEnabled') === 'true') {
-                        saveSession(); // Reuse your existing function
-                    }
-                }
+                return overallAvg;
             } catch (err) {
                 console.error(err);
                 showError('An unexpected error occurred. Check the console for details.');
+                return '0.00';
             }
         }
 
         // UPDATED: Function to display result (now includes letter grade)
-        function displayResult(average) {
-            const resultDiv = document.getElementById('result');
+        function displayResult(average, resultEl = document.getElementById('result')) {
             const letter = getLetterGrade(average);
-            resultDiv.innerHTML = `<div class="result">Overall Average Grade: ${average}% (${letter})</div>`;
+            resultEl.innerHTML = `Overall Average Grade: ${average}% (${letter})`;
+            resultEl.style.display = 'block';
         }
 
         // Function to show error
@@ -2054,6 +2197,110 @@
             document.getElementById('navProfilePic').src = src;
         }
 
+        // NEW: Open Edit Modal for Session
+        function openEditModal(sessionId) {
+            editingSessionId = sessionId;
+            const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) {
+                alert('Session not found!');
+                return;
+            }
+
+            // Populate modal timestamp
+            document.getElementById('editSessionTimestamp').textContent = `Editing session from: ${session.timestamp}`;
+
+            // Clear and populate modal table
+            const modalTbody = document.querySelector('#editSessionTable tbody');
+            modalTbody.innerHTML = '';
+            session.data.forEach(item => {
+                addSubjectRow(item.subject, '#editSessionTable');
+                const inputs = document.querySelectorAll('#editSessionTable tbody tr:last-child input[type="number"]');
+                item.scores.forEach((score, i) => {
+                    if (inputs[i]) inputs[i].value = score;
+                });
+            });
+
+            // Bind modal buttons
+            document.getElementById('addSubjectModal').onclick = () => addSubjectRow('', '#editSessionTable');
+            document.getElementById('calculateModal').onclick = () => {
+                const avg = calculateAverages('#editSessionTable', 'editSessionResult', 'editSessionResult');
+                document.getElementById('editSessionResult').style.display = 'block';
+            };
+
+            // Bind remove buttons in modal
+            document.querySelector('#editSessionTable').addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-btn')) {
+                    removeRow(e.target);
+                }
+            });
+
+            // Show modal
+            document.getElementById('editSessionModal').classList.add('active');
+        }
+
+        // NEW: Close Edit Modal
+        function closeEditModal() {
+            document.getElementById('editSessionModal').classList.remove('active');
+            editingSessionId = null;
+            // Clear modal table
+            document.querySelector('#editSessionTable tbody').innerHTML = '';
+            document.getElementById('editSessionResult').style.display = 'none';
+        }
+
+        // NEW: Save Edited Session
+        function saveEditedSession() {
+            if (!editingSessionId) return;
+
+            const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
+            const sessionIndex = sessions.findIndex(s => s.id === editingSessionId);
+            if (sessionIndex === -1) {
+                alert('Session not found!');
+                return;
+            }
+
+            // Calculate new average
+            calculateAverages('#editSessionTable', 'editSessionResult', 'editSessionResult');
+
+            // Collect edited data
+            const editedData = [];
+            document.querySelectorAll('#editSessionTable tbody tr').forEach(row => {
+                const subjectInput = row.querySelector('input[type="text"]');
+                const scoreInputs = Array.from(row.querySelectorAll('input[type="number"]')).map(input => input.value);
+                if (subjectInput && subjectInput.value.trim()) {
+                    editedData.push({
+                        subject: subjectInput.value.trim(),
+                        scores: scoreInputs
+                    });
+                }
+            });
+
+            if (editedData.length === 0) {
+                alert('At least one subject with a name is required.');
+                return;
+            }
+
+            // Update session
+            sessions[sessionIndex] = {
+                ...sessions[sessionIndex],
+                data: editedData,
+                timestamp: new Date().toLocaleString(), // Update timestamp
+                overallAvg: document.getElementById('editSessionResult').textContent || lastOverallAvg
+            };
+
+            localStorage.setItem('savedSessions', JSON.stringify(sessions));
+            loadSessions(); // Refresh list
+            closeEditModal();
+            alert('Session updated successfully!');
+        }
+
+        // Hide modal on outside click
+        document.getElementById('editSessionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+
         function saveSession() {
             const tableData = [];
             document.querySelectorAll('#gradeTable tbody tr').forEach(row => {
@@ -2078,6 +2325,7 @@
             alert('Session saved!');
         }
 
+        // UPDATED: Load Sessions (now includes Edit button)
         function loadSessions() {
             const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
             const list = document.getElementById('sessionList');
@@ -2089,6 +2337,7 @@
                     <span>${session.timestamp} (Avg: ${session.overallAvg}%)</span>
                     <div>
                         <button class="small-btn" onclick="loadSession(${session.id})">Load</button>
+                        <button class="small-btn" style="background-color: #3498db;" onclick="openEditModal(${session.id})">Edit</button>
                         <button class="remove-btn" onclick="deleteSession(${session.id})">Delete</button>
                     </div>
                 `;
@@ -2309,7 +2558,7 @@
                 document.getElementById('currentThreshold').textContent = newVal;
                 localStorage.setItem('lowScoreThreshold', newVal);
                 // Re-apply to all inputs
-                document.querySelectorAll('#gradeTable input[type="number"]').forEach(input => {
+                document.querySelectorAll('#gradeTable input[type="number"], #editSessionTable input[type="number"]').forEach(input => {
                     updateScoreColor(input);
                 });
                 clearError();
@@ -2425,6 +2674,18 @@
             toggleDownloadBtns(false);
             showSection('grades'); // This will also set initial SEO meta
         });
+
+        // NEW: Auto-save for logged-in users (updated to use new calculateAverages)
+        if (currentUser && lastOverallAvg !== '0.00') {
+            if (!localStorage.getItem('autoSaveEnabled')) {
+                if (confirm('Auto-save sessions after calculations? (You can disable in Settings)')) {
+                    localStorage.setItem('autoSaveEnabled', 'true');
+                }
+            }
+            if (localStorage.getItem('autoSaveEnabled') === 'true') {
+                saveSession(); // Reuse your existing function
+            }
+        }
     </script>
 </body>
 </html>
