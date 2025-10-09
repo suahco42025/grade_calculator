@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Your existing <head> content remains unchanged -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade Calculator | Free Online GPA & Average Tool with PDF/CSV Export</title>
@@ -25,10 +24,6 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
-
-    <!-- NEW: Additional preloads for performance -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" as="script">
-    <link rel="dns-prefetch" href="//www.gstatic.com"> <!-- For Firebase -->
 
     <!-- Open Graph for Social Sharing -->
     <meta property="og:title" content="Grade Calculator | Free Online GPA & Average Tool">
@@ -114,7 +109,6 @@
         window.updateProfile = updateProfile;
     </script>
     <style>
-        /* Your existing styles remain unchanged */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7fa;
@@ -183,27 +177,6 @@
         }
         #pdfBtn:hover {
             background-color: #8e44ad;
-        }
-        /* NEW: Donate button styles */
-        .donate-btn {
-            background-color: #f39c12;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            margin: 10px 0;
-        }
-        .donate-btn:hover {
-            background-color: #e67e22;
-        }
-        .copy-btn {
-            background-color: #27ae60;
-        }
-        .copy-btn:hover {
-            background-color: #229954;
         }
         table {
             width: 100%;
@@ -382,28 +355,6 @@
             margin: 3px 0;
             transition: 0.3s;
         }
-        /* NEW: Spinner for PDF loading */
-        .loading-spinner {
-            display: none; /* Hidden by default */
-            text-align: center;
-            margin: 10px;
-        }
-        .loading-spinner.active {
-            display: block;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
         /* Mobile: Hamburger menu - FIXED FOR REFRESH */
         @media (max-width: 768px) {
             .controls {
@@ -411,8 +362,7 @@
                 gap: 15px; /* Increased gap */
             }
             input[type="text"], input[type="number"] {
-                width: 90px; /* Slightly wider for touch */
-                min-height: 44px; /* iOS touch target minimum */
+                width: 80px; /* Increased from 50px for better mobile touch */
             }
             input[type="text"] {
                 width: 120px; /* Increased from 100px */
@@ -427,9 +377,8 @@
                 min-width: 100px; /* Adjusted for mobile */
             }
             .remove-btn {
-                padding: 8px 16px; /* Wider padding for touch */
+                padding: 6px 12px; /* Scaled for mobile */
                 font-size: 14px;
-                min-height: 44px;
             }
             .small-btn {
                 padding: 10px 18px; /* Scaled for mobile */
@@ -449,16 +398,6 @@
             }
             .nav-menu.active {
                 left: 0;
-            }
-            .nav-menu.active::before {
-                content: '';
-                position: fixed;
-                top: 60px;
-                left: 0;
-                width: 100%;
-                height: calc(100vh - 60px);
-                background: rgba(0,0,0,0.5);
-                z-index: -1;
             }
             .hamburger {
                 display: flex;
@@ -648,7 +587,7 @@
         body.dark-mode table th {
             background-color: #1a252f;
         }
-        body.dark-mode .help-card, body.dark-mode .setting-card, body.dark-mode .profile-card, body.dark-mode .contact-card, body.dark-mode .donate-card {
+        body.dark-mode .help-card, body.dark-mode .setting-card, body.dark-mode .profile-card, body.dark-mode .contact-card {
             background: #3d566e;
             border-color: #5a6c7d;
         }
@@ -659,11 +598,6 @@
         body.dark-mode input { background-color: #3d566e; border-color: #5a6c7d; color: #ecf0f1; }
         body.dark-mode textarea { background-color: #3d566e; border-color: #5a6c7d; color: #ecf0f1; }
         body.dark-mode input::placeholder { color: #a0a0a0; opacity: 0.7; } /* Added for better dark mode placeholder visibility */
-        /* NEW: Enhanced dark mode placeholder visibility */
-        body.dark-mode input::placeholder, body.dark-mode textarea::placeholder {
-            color: #bdc3c7 !important; /* Lighter gray for readability */
-            opacity: 0.8 !important;
-        }
         /* Footer styling */
         footer {
             text-align: center;
@@ -839,170 +773,75 @@
         .submit-btn:hover {
             background-color: #229954;
         }
-        /* NEW: Donate section styling */
-        .donate-section {
-            padding: 20px 0;
-        }
-        .donate-content {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .donate-card {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            padding: 20px;
-            text-align: center;
-        }
-        .donate-card h3 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
-        }
-        .donate-phone {
-            font-size: 24px;
-            font-weight: bold;
-            color: #f39c12;
-            margin: 10px 0;
-            word-break: break-all;
-        }
-        .donate-instructions {
-            background: #e8f4fd;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-            text-align: left;
-        }
-        .donate-instructions ol {
-            padding-left: 20px;
-        }
         /* Hide/show classes for auth */
         .auth-section { display: none; }
         .auth-section.active { display: block; }
         .profile-info { display: none; }
         .profile-info.active { display: block; }
-
-        /* NEW: Modal Styles for Session Edit */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
+        /* NEW: AI Assistant styling */
+        .ai-section {
+            padding: 20px 0;
         }
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-content {
-            background: white;
-            margin: auto;
-            padding: 20px;
-            border-radius: 10px;
-            width: 90%;
+        .ai-content {
             max-width: 800px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            position: relative;
+            margin: 0 auto;
         }
-        body.dark-mode .modal-content {
-            background: #34495e;
-            color: #ecf0f1;
-        }
-        .modal-header {
+        .ai-chat-container {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            height: 500px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
+            flex-direction: column;
+            margin-bottom: 20px;
         }
-        .modal-header h3 {
-            margin: 0;
+        .ai-chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: white;
+        }
+        .ai-message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+        }
+        .ai-message.user {
+            background: #3498db;
+            color: white;
+            text-align: right;
+        }
+        .ai-message.ai {
+            background: #e8f4fd;
             color: #2c3e50;
         }
-        .close-modal {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #999;
-        }
-        .close-modal:hover {
-            color: #e74c3c;
-        }
-        .modal-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-        }
-        .modal-table th, .modal-table td {
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #ddd;
-            font-size: 14px;
-        }
-        .modal-table input[type="text"] {
-            width: 120px;
-        }
-        .modal-table input[type="number"] {
-            width: 60px;
-        }
-        .modal-footer {
+        .ai-chat-input {
             display: flex;
-            gap: 10px;
-            justify-content: flex-end;
+            padding: 15px;
+            border-top: 1px solid #ddd;
         }
-        .edit-save-btn {
-            background-color: #27ae60;
-        }
-        .edit-save-btn:hover {
-            background-color: #229954;
-        }
-        .edit-cancel-btn {
-            background-color: #95a5a6;
-        }
-        .edit-cancel-btn:hover {
-            background-color: #7f8c8d;
-        }
-        .modal-result {
-            background-color: #d5f4e6;
+        .ai-chat-input input {
+            flex: 1;
             padding: 10px;
-            border-radius: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px 0 0 5px;
+        }
+        .ai-chat-input button {
+            padding: 10px 20px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+        }
+        .ai-chat-input button:hover {
+            background: #229954;
+        }
+        .ai-status {
             text-align: center;
-            font-weight: bold;
-            color: #27ae60;
+            color: #666;
+            font-size: 14px;
             margin-top: 10px;
-        }
-        body.dark-mode .modal-result {
-            background-color: #1e3a2f;
-            color: #a3e4d7;
-        }
-        /* NEW: Progress Bar Styles */
-        #progressBar {
-            display: none;
-            margin-top: 10px;
-            background-color: #ecf0f1;
-            border-radius: 10px;
-            height: 20px;
-            overflow: hidden;
-        }
-        #progressBar > div {
-            background: linear-gradient(90deg, #27ae60, #2ecc71);
-            height: 100%;
-            width: 0%;
-            transition: width 0.5s ease;
-            border-radius: 10px;
-        }
-        body.dark-mode #progressBar {
-            background-color: #34495e;
-        }
-        body.dark-mode #progressBar > div {
-            background: linear-gradient(90deg, #a3e4d7, #d5f4e6);
         }
     </style>
 </head>
@@ -1011,15 +850,15 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <a href="#" onclick="showSection('grades'); return false;" aria-label="Navigate to Grades section">Grade Calculator</a>
+                <a href="#" onclick="showSection('grades')">Grade Calculator</a>
             </div>
             <ul class="nav-menu" id="navMenu">
-                <li><a href="#" onclick="showSection('grades'); return false;" aria-label="Navigate to Grades section">Grades</a></li>
-                <li><a href="#" onclick="showSection('profile'); return false;" aria-label="Navigate to Profile section">Profile</a></li>
-                <li><a href="#" onclick="showSection('settings'); return false;" aria-label="Navigate to Settings section">Settings</a></li>
-                <li><a href="#" onclick="showSection('help'); return false;" aria-label="Navigate to Help section">Help</a></li>
-                <li><a href="#" onclick="showSection('donate'); return false;" aria-label="Navigate to Donate section">Donate</a></li>
-                <li><a href="#" onclick="showSection('contact'); return false;" aria-label="Navigate to Contact section">Contact</a></li>
+                <li><a href="#" onclick="showSection('grades')">Grades</a></li>
+                <li><a href="#" onclick="showSection('profile')">Profile</a></li>
+                <li><a href="#" onclick="showSection('settings')">Settings</a></li>
+                <li><a href="#" onclick="showSection('help')">Help</a></li>
+                <li><a href="#" onclick="showSection('ai')">🤖 AI Assistant</a></li> <!-- NEW: AI Nav Item -->
+                <li><a href="#" onclick="showSection('contact')">Contact</a></li>
             </ul>
             <div class="nav-profile">
                 <img id="navProfilePic" src="Suahco4.png" alt="User profile avatar" class="profile-pic" onclick="toggleProfileMenu()">
@@ -1045,12 +884,7 @@
                 <!-- Download buttons (hidden initially) -->
                 <div>
                     <button id="downloadBtn" style="display: none; background-color: #f39c12;" onclick="downloadCSV()">Download CSV</button>
-                    <button id="pdfBtn" style="display: none; background-color: #9b59b6;" onclick="triggerPDFDownload()">Download PDF</button>
-                    <!-- NEW: PDF Spinner -->
-                    <div id="pdfSpinner" class="loading-spinner">
-                        <div class="spinner"></div>
-                        <p>Generating PDF...</p>
-                    </div>
+                    <button id="pdfBtn" style="display: none; background-color: #9b59b6;" onclick="downloadPDF()">Download PDF</button>
                 </div>
             </div>
             
@@ -1089,9 +923,27 @@
             </table>
             
             <div id="result"></div>
-            <!-- NEW: Progress Bar -->
-            <div id="progressBar"><div></div></div>
             <div id="error" class="error"></div>
+        </section>
+
+        <!-- NEW: AI Assistant Section (hidden by default) -->
+        <section id="ai-section" class="ai-section" style="display: none;">
+            <h1>🤖 AI Assistant</h1>
+            <div class="ai-content">
+                <p style="text-align: center; color: #666;">Ask me anything about grades, study tips, or how to use this tool! (Powered by OpenAI)</p>
+                <div class="ai-chat-container">
+                    <div id="aiChatMessages" class="ai-chat-messages">
+                        <div class="ai-message ai">Hi! I'm your AI assistant. Ask me about your grades, study advice, or tool tips. For example: "How do I improve my Math score?"</div>
+                    </div>
+                    <div class="ai-chat-input">
+                        <input type="text" id="aiChatInput" placeholder="Type your question..." onkeypress="handleKeyPress(event)">
+                        <button onclick="sendMessageToAI()">Send</button>
+                    </div>
+                </div>
+                <div id="aiStatus" class="ai-status"></div>
+                <p style="text-align: center; font-size: 12px; color: #999;">Note: Your chats are sent to OpenAI for processing. No data is stored.</p>
+            </div>
+            <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
         </section>
 
         <!-- Help Section (hidden by default) -->
@@ -1246,7 +1098,7 @@
                     
                     <div class="profile-card">
                         <h3>💾 Saved Sessions</h3>
-                        <p>Save your current grades to load later. Use Edit to manually adjust sessions.</p>
+                        <p>Save your current grades to load later.</p>
                         <button onclick="saveSession()" class="small-btn">Save Current Session</button>
                         <ul id="sessionList" class="session-list"></ul>
                     </div>
@@ -1264,78 +1116,6 @@
                         <button onclick="logout()" class="clear-btn">Logout</button>
                         <p class="small-text">Clears session and logs you out.</p>
                     </div>
-                </div>
-            </div>
-            
-            <!-- NEW: Session Edit Modal (with modal error div) -->
-            <div id="editSessionModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Edit Session</h3>
-                        <button class="close-modal" onclick="closeEditModal()">&times;</button>
-                    </div>
-                    <p id="editSessionTimestamp" class="small-text">Editing session from: ...</p>
-                    <!-- NEW: Modal Error Div -->
-                    <div id="modalError" class="error" style="display: none;"></div>
-                    <div class="controls" style="justify-content: flex-start; margin-bottom: 10px;">
-                        <button id="addSubjectModal" style="padding: 8px 16px; font-size: 14px;">Add Subject</button>
-                        <button id="calculateModal" style="padding: 8px 16px; font-size: 14px; background-color: #e74c3c;">Calculate</button>
-                    </div>
-                    <table id="editSessionTable" class="modal-table">
-                        <thead>
-                            <tr>
-                                <th class="subject-th">Subject</th>
-                                <th>1st Period</th>
-                                <th>2nd Period</th>
-                                <th>3rd Period</th>
-                                <th>Exam 1</th>
-                                <th>4th Period</th>
-                                <th>5th Period</th>
-                                <th>6th Period</th>
-                                <th>Final</th>
-                                <th>Subject Average</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Dynamic rows for modal -->
-                        </tbody>
-                    </table>
-                    <div id="editSessionResult" class="modal-result" style="display: none;"></div>
-                    <div class="modal-footer">
-                        <button class="small-btn edit-cancel-btn" onclick="closeEditModal()">Cancel</button>
-                        <button class="small-btn edit-save-btn" onclick="saveEditedSession()">Save Changes</button>
-                    </div>
-                </div>
-            </div>
-            
-            <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
-        </section>
-
-        <!-- NEW: Donate Section (hidden by default) -->
-        <section id="donate-section" class="donate-section" style="display: none;">
-            <h1>Support Us - Donate</h1>
-            
-            <div class="donate-content">
-                <div class="donate-card">
-                    <h3>❤️ Thank You for Using Grade Calculator!</h3>
-                    <p>Your donations help us keep this tool free, add new features, and support students like you. Every contribution counts!</p>
-                    
-                    <div class="donate-instructions">
-                        <h4>How to Donate via Orange Money:</h4>
-                        <ol>
-                            <li>Dial <strong>*144#</strong> on your phone.</li>
-                            <li>Select <strong>1 - Money Transfer</strong>.</li>
-                            <li>Enter the donation phone number below.</li>
-                            <li>Enter amount (e.g., LRD 500, 1000, or any amount).</li>
-                            <li>Confirm and send. Reference: "Grade Calculator Support".</li>
-                        </ol>
-                        <p><em>Or transfer directly from your Orange Money app/wallet.</em></p>
-                    </div>
-                    
-                    <p class="donate-phone" id="donatePhone">+231 778 662-590</p> <!-- Dynamically set via JS -->
-                    <button class="donate-btn copy-btn" onclick="copyToClipboard('donatePhone')">Copy Phone Number</button>
-                    
-                    <p class="small-text" style="margin-top: 15px;">We appreciate your support! Questions? <a href="#" onclick="showSection('contact')">Contact us</a>.</p>
                 </div>
             </div>
             
@@ -1558,17 +1338,11 @@
                 <a href="#" onclick="showSection('privacy')">Privacy Policy</a>
                 <a href="#" onclick="showSection('terms')">Terms of Service</a>
                 <a href="#" onclick="showSection('contact')">Contact Us</a>
-                <a href="#" onclick="showSection('donate')">Donate</a>
             </div>
         </div>
     </footer>
 
     <script>
-        // NEW: Config Object (easy to update)
-        const CONFIG = {
-            donationPhone: '+231 778 662-590' // UPDATE THIS TO YOUR ACTUAL DONATION NUMBER
-        };
-
         let subjectCount = 0;
         const numScoreColumns = 8; // 1st,2nd,3rd,Exam1,4th,5th,6th,Exam2
         const columnIdMap = ['avg1', 'avg2', 'avg3', 'avgExam1', 'avg4', 'avg5', 'avg6', 'avgExam2'];
@@ -1578,75 +1352,9 @@
         let lastOverallAvg = '0.00'; // For stats
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
-        let editingSessionId = null; // NEW: Track which session is being edited
 
-        // UPDATED: Helper to create semi-transparent base64 image for watermark (with text fallback)
-        function createWatermarkImage(imgUrl, opacity = 0.2) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous'; // For local files, this is fine
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    // Draw original image
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // Apply opacity by drawing a semi-transparent overlay (simple hack)
-                    ctx.globalAlpha = opacity;
-                    ctx.fillStyle = 'white'; // Or use a color tint if desired
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.globalAlpha = 1; // Reset
-                    
-                    resolve(canvas.toDataURL('Suahco4.png'));
-                };
-                img.onerror = () => {
-                    console.warn('Image watermark failed; using text fallback');
-                    // Fallback: Create a simple canvas with text
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = 200; canvas.height = 100;
-                    ctx.globalAlpha = opacity;
-                    ctx.fillStyle = '#3498db';
-                    ctx.font = 'bold 24px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Grade Calculator', 100, 50);
-                    ctx.globalAlpha = 1;
-                    resolve(canvas.toDataURL('Suahco4.png'));
-                };
-                img.src = imgUrl;
-            });
-        }
-
-        // UPDATED: Enhanced watermark (responsive scaling + text overlay)
-        async function addWatermarkToPDF(doc, watermarkBase64) {
-            const pageCount = doc.internal.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                const pageWidth = doc.internal.pageSize.getWidth();
-                const pageHeight = doc.internal.pageSize.getHeight();
-                const centerX = pageWidth / 2;
-                const centerY = pageHeight / 2;
-                
-                doc.save();
-                doc.translate(centerX, centerY);
-                doc.rotate(45 * (Math.PI / 180)); // Diagonal
-                
-                // Scale dynamically (e.g., 30% of page width)
-                const imgWidth = pageWidth * 0.3;
-                const imgHeight = imgWidth * 0.75; // Maintain aspect
-                doc.addImage(watermarkBase64, 'PNG', -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
-                
-                // NEW: Add faint text overlay
-                doc.setFontSize(12);
-                doc.setTextColor(100, 100, 100); // Gray
-                doc.setGState(new doc.GState({ opacity: 0.1 }));
-                doc.text('Grade Calculator © 2025', 0, imgHeight / 2 + 10);
-                doc.restore();
-            }
-        }
+        // NEW: OpenAI API Key - REPLACE WITH YOUR KEY
+        const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY_HERE'; // e.g., 'sk-abc123...'
 
         // NEW: Debounce utility for input events
         function debounce(fn, delay) {
@@ -1667,27 +1375,77 @@
             return 'F';
         }
 
-        // UPDATED: Copy to clipboard function (for donate phone)
-        function copyToClipboard(elementId) {
-            const text = CONFIG.donationPhone; // Use config
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Phone number copied! Open Orange Money and paste to transfer.');
-            }).catch(() => {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert('Phone number copied! Open Orange Money and paste to transfer.');
-            });
+        // NEW: AI Chat Functions
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessageToAI();
         }
 
-        // Set donation phone dynamically
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('donatePhone').textContent = CONFIG.donationPhone;
-        });
+        async function sendMessageToAI() {
+            const input = document.getElementById('aiChatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            if (!OPENAI_API_KEY || OPENAI_API_KEY === 'YOUR_OPENAI_API_KEY_HERE') {
+                showAIStatus('Please add your OpenAI API key in the script to use AI.', 'error');
+                return;
+            }
+
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            input.value = '';
+            showAIStatus('Thinking...', 'loading');
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
+                            },
+                            { role: 'user', content: message }
+                        ],
+                        max_tokens: 150,
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+                const data = await response.json();
+                const aiReply = data.choices[0].message.content;
+                addMessageToChat(aiReply, 'ai');
+                showAIStatus('Message sent!', 'success');
+            } catch (error) {
+                console.error('AI Error:', error);
+                showAIStatus('Sorry, AI is having trouble. Check your API key or try again.', 'error');
+                addMessageToChat('Error: Could not get response. Please try again.', 'ai');
+            }
+        }
+
+        function addMessageToChat(message, sender) {
+            const messagesDiv = document.getElementById('aiChatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${sender}`;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showAIStatus(message, type) {
+            const statusDiv = document.getElementById('aiStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `ai-status ${type}`;
+            if (type !== 'loading') {
+                setTimeout(() => { statusDiv.textContent = ''; statusDiv.className = 'ai-status'; }, 3000);
+            }
+        }
 
         // JS Fallback for www redirect (uncomment if no custom domain)
         /*
@@ -1704,7 +1462,7 @@
                 'settings': 'Settings | Grade Calculator - Customize Your Experience',
                 'profile': 'Profile | Grade Calculator - Manage Account & Sessions',
                 'contact': 'Contact Us | Grade Calculator - Get Support',
-                'donate': 'Donate | Support Grade Calculator - Orange Money Contributions',
+                'ai': 'AI Assistant | Grade Calculator - Smart Study Help', // NEW
                 'privacy': 'Privacy Policy | Grade Calculator - Data Protection',
                 'terms': 'Terms of Service | Grade Calculator - User Agreement'
             };
@@ -1716,8 +1474,8 @@
                 const descriptions = {
                     'grades': 'Track grades across periods & exams with our free Grade Matrix Calculator. Calculate averages, export PDF/CSV, save sessions. Mobile-friendly & secure.',
                     'help': 'Learn to use Grade Calculator: add subjects, calculate averages, export reports. Free GPA tool for students.',
+                    'ai': 'Chat with our AI assistant for grade advice, study tips, and tool help.', // NEW
                     'contact': 'Contact Grade Calculator team for support on our free GPA tool.',
-                    'donate': 'Support Grade Calculator with a donation via Orange Money. Help us keep this free tool running for students!',
                     'privacy': 'Grade Calculator Privacy Policy: how we protect your data.',
                     'terms': 'Grade Calculator Terms of Service: rules for using our free grading tool.'
                 };
@@ -1752,7 +1510,7 @@
             const auth = window.auth;
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    //alert('Logged in successfully!');
+                    alert('Logged in successfully!');
                     document.getElementById('authForm').reset();
                     document.getElementById('authError').textContent = '';
                     loadProfile();
@@ -1768,7 +1526,7 @@
             const { signOut } = window;
             const auth = window.auth;
             signOut(auth).then(() => {
-                //alert('Logged out successfully!');
+                alert('Logged out successfully!');
                 currentUser = null;
                 updateAuthUI();
                 showSection('grades');
@@ -1845,18 +1603,19 @@
         // UPDATED: Event delegation for real-time color updates (now debounced)
         const debouncedUpdateColor = debounce(updateScoreColor, 300);
         document.addEventListener('input', function(e) {
-            if (e.target.type === 'number' && (e.target.closest('#gradeTable') || e.target.closest('#editSessionTable'))) {
+            if (e.target.type === 'number' && e.target.closest('#gradeTable')) {
                 debouncedUpdateColor(e.target);
             }
         });
 
-        // UPDATED: Function to add a new subject row (with ARIA labels)
-        function addSubjectRow(defaultName = '', tableId = '#gradeTable') {
-            const tbody = document.querySelector(`${tableId} tbody`);
+        // Function to add a new subject row (with optional default name)
+        function addSubjectRow(defaultName = '') {
+            subjectCount++;
+            const tbody = document.querySelector('#gradeTable tbody');
             const row = document.createElement('tr');
             let scoreInputs = '';
             for (let i = 0; i < numScoreColumns; i++) {
-                scoreInputs += `<td><input type="number" min="0" max="100" placeholder="Score" aria-label="${columnNames[i]} Score"></td>`;
+                scoreInputs += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
             }
             row.innerHTML = `
                 <td>
@@ -1943,9 +1702,9 @@
             document.body.removeChild(link);
         }
 
-        // UPDATED: Download table as PDF (now async with watermark)
-        async function downloadPDF() {
-            // NEW: Enhanced check
+        // Download table as PDF (filtered to active columns, with checks & footer)
+        function downloadPDF() {
+            // Enhanced check
             if (activeColumns.length === 0) {
                 alert('No scores entered. Calculate averages first!');
                 return;
@@ -2005,17 +1764,7 @@
                 doc.setFontSize(12);
                 doc.text(`Overall Average: ${document.getElementById('overallAverage').textContent}`, 14, doc.lastAutoTable.finalY + 10);
 
-                // NEW: Add watermark (load and apply)
-                try {
-                    const watermarkBase64 = await createWatermarkImage('Suahco4.png', 0.2); // 20% opacity
-                    await addWatermarkToPDF(doc, watermarkBase64);
-                    console.log('Watermark added successfully');
-                } catch (imgError) {
-                    console.warn('Watermark image failed to load:', imgError.message);
-                    // Graceful fallback: No watermark (text fallback already in createWatermarkImage)
-                }
-
-                // NEW: Add timestamp footer
+                // Add timestamp footer
                 const pageHeight = doc.internal.pageSize.height;
                 doc.setFontSize(8);
                 doc.text(`Generated: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
@@ -2034,26 +1783,13 @@
             }
         }
 
-        // UPDATED: Button onclick to handle async PDF (wrap in promise for seamless UX)
-        function triggerPDFDownload() {
-            const spinner = document.getElementById('pdfSpinner');
-            spinner.classList.add('active');
-            downloadPDF().catch(err => {
-                console.error('Download trigger error:', err);
-                alert('PDF generation failed. Please try again.');
-            }).finally(() => {
-                spinner.classList.remove('active');
-            });
-        }
-
-        // UPDATED: Function to calculate averages (with errorCallback + auto-save guard)
-        function calculateAverages(tableId = '#gradeTable', resultId = 'result', overallAvgId = 'overallAverage', errorCallback = showError) {
+        // Function to calculate averages
+        function calculateAverages() {
             try {
-                const table = document.querySelector(tableId);
-                const rows = table.querySelectorAll('tbody tr');
+                const rows = document.querySelectorAll('#gradeTable tbody tr');
                 if (rows.length === 0) {
-                    errorCallback('Please add at least one subject.');
-                    return '0.00';
+                    showError('Please add at least one subject.');
+                    return;
                 }
 
                 const columnTotals = new Array(numScoreColumns).fill(0);
@@ -2063,13 +1799,10 @@
                 let invalidSubjects = [];
                 lastSubjectAvgs = []; // Reset for stats
 
-                // Clear period avgs if main table
-                if (tableId === '#gradeTable') {
-                    columnIdMap.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) el.textContent = '0.00';
-                    });
-                }
+                columnIdMap.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '0.00';
+                });
 
                 for (let r = 0; r < rows.length; r++) {
                     const row = rows[r];
@@ -2091,8 +1824,8 @@
 
                         let score = parseFloat(input.value);
                         if (isNaN(score) || score < 0 || score > 100) {
-                            errorCallback('Scores must be numbers between 0 and 100.');
-                            return '0.00';
+                            showError('Scores must be numbers between 0 and 100.');
+                            return;
                         }
                         if (score > 100) score = 100; // Clamp to 100
 
@@ -2111,79 +1844,57 @@
                 }
 
                 if (invalidSubjects.length > 0) {
-                    errorCallback(`Please name subjects in rows: ${invalidSubjects.join(', ')}`);
-                    return '0.00';
+                    showError(`Please name subjects in rows: ${invalidSubjects.join(', ')}`);
+                    return;
                 }
 
-                // Update period avgs if main table
-                if (tableId === '#gradeTable') {
-                    for (let i = 0; i < numScoreColumns; i++) {
-                        const colAvg = columnCounts[i] > 0 ? (columnTotals[i] / columnCounts[i]).toFixed(2) : '0.00';
-                        const colId = columnIdMap[i];
-                        const el = document.getElementById(colId);
-                        if (el) el.textContent = colAvg;
-                    }
-
-                    // Track active columns (with data)
-                    activeColumns = [];
-                    for (let i = 0; i < numScoreColumns; i++) {
-                        if (columnCounts[i] > 0) {
-                            activeColumns.push(i);
-                        }
-                    }
-
-                    toggleDownloadBtns(true);
+                for (let i = 0; i < numScoreColumns; i++) {
+                    const colAvg = columnCounts[i] > 0 ? (columnTotals[i] / columnCounts[i]).toFixed(2) : '0.00';
+                    const colId = columnIdMap[i];
+                    const el = document.getElementById(colId);
+                    if (el) el.textContent = colAvg;
                 }
 
                 const overallAvg = grandCount > 0 ? (grandTotal / grandCount).toFixed(2) : '0.00';
                 lastOverallAvg = overallAvg;
-                const overallEl = document.getElementById(overallAvgId);
+                const overallEl = document.getElementById('overallAverage');
                 if (overallEl) overallEl.textContent = overallAvg + '%';
 
-                const resultEl = document.getElementById(resultId);
-                if (resultEl) {
-                    displayResult(overallAvg, resultEl);
+                // Track active columns (with data)
+                activeColumns = [];
+                for (let i = 0; i < numScoreColumns; i++) {
+                    if (columnCounts[i] > 0) {
+                        activeColumns.push(i);
+                    }
                 }
 
-                // NEW: Auto-save only if user logged in + data present + enabled
-                if (tableId === '#gradeTable' && currentUser && grandCount > 0 && localStorage.getItem('autoSaveEnabled') === 'true') {
-                    saveSession();
-                }
-
+                displayResult(overallAvg);
+                generateStats(); // Update profile stats
                 clearError();
-                return overallAvg;
+                toggleDownloadBtns(true);
             } catch (err) {
                 console.error(err);
-                errorCallback('An unexpected error occurred. Check the console for details.');
-                return '0.00';
+                showError('An unexpected error occurred. Check the console for details.');
             }
         }
 
-        // UPDATED: Function to display result (now includes letter grade + progress bar)
-        function displayResult(average, resultEl = document.getElementById('result')) {
+        // Function to display result
+        function displayResult(average) {
+            const resultDiv = document.getElementById('result');
             const letter = getLetterGrade(average);
-            resultEl.innerHTML = `Overall Average Grade: ${average}% (${letter})`;
-            resultEl.style.display = 'block';
-
-            // NEW: Update progress bar
-            const progressBar = document.getElementById('progressBar');
-            const progressFill = progressBar.querySelector('div');
-            progressFill.style.width = `${Math.min(parseFloat(average), 100)}%`;
-            progressBar.style.display = 'block';
+            resultDiv.innerHTML = `<div class="result">Overall Average Grade: ${average}% (${letter})</div>`;
         }
 
-        // UPDATED: Function to show error (now supports modal)
+        // Function to show error
         function showError(message) {
             const errorDiv = document.getElementById('error');
             if (errorDiv) errorDiv.textContent = message;
         }
 
-        // UPDATED: Function to clear error (now supports modal)
+        // Function to clear error
         function clearError() {
             const errorDiv = document.getElementById('error');
             if (errorDiv) errorDiv.textContent = '';
-            const modalError = document.getElementById('modalError');
-            if (modalError) modalError.style.display = 'none';
         }
 
         // FIXED: Toggle mobile nav menu - now closes if open on section change
@@ -2268,119 +1979,6 @@
             document.getElementById('navProfilePic').src = src;
         }
 
-        // NEW: Open Edit Modal for Session
-        function openEditModal(sessionId) {
-            editingSessionId = sessionId;
-            const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
-            const session = sessions.find(s => s.id === sessionId);
-            if (!session) {
-                alert('Session not found!');
-                return;
-            }
-
-            // Populate modal timestamp
-            document.getElementById('editSessionTimestamp').textContent = `Editing session from: ${session.timestamp}`;
-
-            // Clear and populate modal table
-            const modalTbody = document.querySelector('#editSessionTable tbody');
-            modalTbody.innerHTML = '';
-            session.data.forEach(item => {
-                addSubjectRow(item.subject, '#editSessionTable');
-                const inputs = document.querySelectorAll('#editSessionTable tbody tr:last-child input[type="number"]');
-                item.scores.forEach((score, i) => {
-                    if (inputs[i]) inputs[i].value = score;
-                });
-            });
-
-            // Bind modal buttons
-            document.getElementById('addSubjectModal').onclick = () => addSubjectRow('', '#editSessionTable');
-            document.getElementById('calculateModal').onclick = () => {
-                const resultEl = document.getElementById('editSessionResult');
-                const avg = calculateAverages('#editSessionTable', 'editSessionResult', null, (msg) => {
-                    // Modal-specific error
-                    const modalError = document.getElementById('modalError');
-                    modalError.textContent = msg;
-                    modalError.style.display = 'block';
-                    setTimeout(() => modalError.style.display = 'none', 5000); // Auto-clear
-                });
-                resultEl.style.display = 'block';
-            };
-
-            // Bind remove buttons in modal
-            document.querySelector('#editSessionTable').addEventListener('click', function(e) {
-                if (e.target.classList.contains('remove-btn')) {
-                    removeRow(e.target);
-                }
-            });
-
-            // Show modal
-            document.getElementById('editSessionModal').classList.add('active');
-        }
-
-        // NEW: Close Edit Modal
-        function closeEditModal() {
-            document.getElementById('editSessionModal').classList.remove('active');
-            editingSessionId = null;
-            // Clear modal table
-            document.querySelector('#editSessionTable tbody').innerHTML = '';
-            document.getElementById('editSessionResult').style.display = 'none';
-            clearError(); // Clear modal error too
-        }
-
-        // UPDATED: Save Edited Session (with quick validation + empty check)
-        function saveEditedSession() {
-            if (!editingSessionId) return;
-
-            const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
-            const sessionIndex = sessions.findIndex(s => s.id === editingSessionId);
-            if (sessionIndex === -1) {
-                alert('Session not found!');
-                return;
-            }
-
-            // Calculate new average
-            calculateAverages('#editSessionTable', 'editSessionResult', 'editSessionResult');
-
-            // Collect edited data
-            const editedData = [];
-            document.querySelectorAll('#editSessionTable tbody tr').forEach(row => {
-                const subjectInput = row.querySelector('input[type="text"]');
-                const scoreInputs = Array.from(row.querySelectorAll('input[type="number"]')).map(input => input.value);
-                if (subjectInput && subjectInput.value.trim()) {
-                    editedData.push({
-                        subject: subjectInput.value.trim(),
-                        scores: scoreInputs
-                    });
-                }
-            });
-
-            // NEW: Prevent saving empty sessions
-            if (editedData.length === 0 || editedData.every(item => !item.subject.trim())) {
-                alert('Cannot save empty session. Add at least one subject.');
-                return;
-            }
-
-            // Update session
-            sessions[sessionIndex] = {
-                ...sessions[sessionIndex],
-                data: editedData,
-                timestamp: new Date().toLocaleString(), // Update timestamp
-                overallAvg: document.getElementById('editSessionResult').textContent || lastOverallAvg
-            };
-
-            localStorage.setItem('savedSessions', JSON.stringify(sessions));
-            loadSessions(); // Refresh list
-            closeEditModal();
-            alert('Session updated successfully!');
-        }
-
-        // Hide modal on outside click
-        document.getElementById('editSessionModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEditModal();
-            }
-        });
-
         function saveSession() {
             const tableData = [];
             document.querySelectorAll('#gradeTable tbody tr').forEach(row => {
@@ -2405,7 +2003,6 @@
             alert('Session saved!');
         }
 
-        // UPDATED: Load Sessions (now includes Edit button + limit warning)
         function loadSessions() {
             const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
             const list = document.getElementById('sessionList');
@@ -2417,20 +2014,11 @@
                     <span>${session.timestamp} (Avg: ${session.overallAvg}%)</span>
                     <div>
                         <button class="small-btn" onclick="loadSession(${session.id})">Load</button>
-                        <button class="small-btn" style="background-color: #3498db;" onclick="openEditModal(${session.id})">Edit</button>
                         <button class="remove-btn" onclick="deleteSession(${session.id})">Delete</button>
                     </div>
                 `;
                 list.appendChild(li);
             });
-
-            // NEW: Add warning if nearing limit
-            if (sessions.length >= 4) {
-                const warning = document.createElement('p');
-                warning.className = 'error';
-                warning.textContent = `Storage almost full! (${sessions.length}/5 sessions) Delete old ones to save more.`;
-                list.parentNode.insertBefore(warning, list);
-            }
         }
 
         // UPDATED: Load session (now auto-recalculates)
@@ -2494,7 +2082,7 @@
             `;
         }
 
-        // UPDATED: Contact functions (updated with EmailJS + Auto-Reply, safer logs)
+        // Contact functions (updated with EmailJS + Auto-Reply)
         function submitContactForm(e) {
             e.preventDefault();
             const name = document.getElementById('contactName').value.trim();
@@ -2507,8 +2095,8 @@
                 return;
             }
 
-            // UPDATED: Safer logging (no full message)
-            console.log('Contact Form Submitted:', { name, email, subject: subject.substring(0, 20) + '...' });
+            // Log for debugging
+            console.log('Contact Form Submitted:', { name, email, subject, message });
 
             // Send main contact email via EmailJS
             emailjs.send('service_t4jdpwc', 'template_bq7h8n6', {
@@ -2532,11 +2120,11 @@
                     console.error('Auto-Reply Error (non-blocking):', replyError);
                 });
 
-                console.log('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
+                alert('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
                 document.getElementById('contactForm').reset();
             }, (error) => {
                 console.error('Main EmailJS Error:', error);
-                console.log('Failed to send message. Please try again or email us directly.');
+                alert('Failed to send message. Please try again or email us directly.');
             });
         }
 
@@ -2565,9 +2153,10 @@
                 const profileSec = document.getElementById('profile-section');
                 if (profileSec) profileSec.style.display = 'block';
                 loadProfile();
-            } else if (section === 'donate') {
-                const donateSec = document.getElementById('donate-section');
-                if (donateSec) donateSec.style.display = 'block';
+            } else if (section === 'ai') { // NEW: AI Section
+                const aiSec = document.getElementById('ai-section');
+                if (aiSec) aiSec.style.display = 'block';
+                document.getElementById('aiChatInput').focus();
             } else if (section === 'contact') {
                 const contactSec = document.getElementById('contact-section');
                 if (contactSec) contactSec.style.display = 'block';
@@ -2592,7 +2181,7 @@
             updateMetaForSection(section);
         }
 
-        // UPDATED: Toggle accordion sections (with ARIA for accessibility)
+        // Toggle accordion sections
         function toggleAccordion(header) {
             const content = header.nextElementSibling;
             const isActive = content.classList.contains('active');
@@ -2604,9 +2193,6 @@
             if (!isActive) {
                 content.classList.add('active');
             }
-            
-            // NEW: ARIA update
-            header.setAttribute('aria-expanded', !isActive);
         }
 
         // Load saved settings
@@ -2646,7 +2232,7 @@
                 document.getElementById('currentThreshold').textContent = newVal;
                 localStorage.setItem('lowScoreThreshold', newVal);
                 // Re-apply to all inputs
-                document.querySelectorAll('#gradeTable input[type="number"], #editSessionTable input[type="number"]').forEach(input => {
+                document.querySelectorAll('#gradeTable input[type="number"]').forEach(input => {
                     updateScoreColor(input);
                 });
                 clearError();
@@ -2664,7 +2250,7 @@
         function saveDefaultSubjects() {
             const subjects = document.getElementById('defaultSubjectsInput').value;
             localStorage.setItem('defaultSubjects', subjects);
-            //alert('Default subjects saved! Refresh page to see changes.');
+            alert('Default subjects saved! Refresh page to see changes.');
         }
 
         // Toggle date in exports
@@ -2684,9 +2270,8 @@
                 columnIdMap.forEach(id => document.getElementById(id).textContent = '0.00');
                 document.getElementById('overallAverage').textContent = '0.00';
                 document.getElementById('result').innerHTML = '';
-                document.getElementById('progressBar').style.display = 'none'; // NEW: Hide progress bar
                 clearError();
-                //alert('Data cleared! Back to defaults.');
+                alert('Data cleared! Back to defaults.');
                 showSection('grades');
             }
         }
@@ -2696,58 +2281,32 @@
             // FIXED: Force close mobile nav on load/refresh
             closeMobileNav();
 
-            // Set donation phone
-            document.getElementById('donatePhone').textContent = CONFIG.donationPhone;
-
-            // UPDATED: Initialize EmailJS with error handling
-            try {
-                emailjs.init('mMoFbLBQtA226NQY_'); // Replace with your actual EmailJS public key
-            } catch (err) {
-                console.warn('EmailJS init failed:', err);
-                // Fallback: Show a message in contact form
-                const contactCard = document.querySelector('.contact-card');
-                if (contactCard) {
-                    contactCard.innerHTML += '<p class="error">Contact form temporarily unavailable. Email us directly.</p>';
-                }
-            }
+            // Initialize EmailJS
+            emailjs.init('mMoFbLBQtA226NQY_');
 
             // Initialize Firebase Auth (now calls updateAuthUI immediately)
             initAuth();
 
-            // FIXED: Bind main buttons (wrap calculateAverages to avoid event passing)
+            // Bind main buttons
             document.getElementById('addSubject').addEventListener('click', () => addSubjectRow(''));
-            document.getElementById('calculate').addEventListener('click', () => calculateAverages()); // ← THIS IS THE FIX
+            document.getElementById('calculate').addEventListener('click', calculateAverages);
             
-            // UPDATED: PDF button onclick (now async-safe)
-            const pdfBtn = document.getElementById('pdfBtn');
-            if (pdfBtn) {
-                pdfBtn.onclick = triggerPDFDownload; // Use wrapper for async
-            }
-            
-            // UPDATED: Auth form submit (now grabs name from new field + validation)
+            // Event delegation for remove buttons (dynamic)
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-btn')) {
+                    removeRow(e.target);
+                }
+            });
+
+            // Auth form submit
             document.getElementById('authForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const name = document.getElementById('signupName').value.trim(); // NEW: From form field
-                const email = document.getElementById('authEmail').value.trim();
-                const password = document.getElementById('authPassword').value.trim();
+                const email = document.getElementById('authEmail').value;
+                const password = document.getElementById('authPassword').value;
+                const name = document.getElementById('userName').value || email.split('@')[0];
                 const submitBtn = document.getElementById('authSubmit');
-
-                // NEW: Quick validation
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    document.getElementById('authError').textContent = 'Please enter a valid email.';
-                    return;
-                }
-                if (password.length < 6) {
-                    document.getElementById('authError').textContent = 'Password must be at least 6 characters.';
-                    return;
-                }
-
                 if (submitBtn.textContent === 'Sign Up') {
-                    if (!name) {
-                        if (!confirm('No name provided. Use email as display name?')) return;
-                    }
-                    signUpWithEmail(email, password, name || email.split('@')[0]); // Fallback if empty
+                    signUpWithEmail(email, password, name);
                 } else {
                     signInWithEmail(email, password);
                 }
@@ -2758,23 +2317,6 @@
 
             // Contact form submit
             document.getElementById('contactForm').addEventListener('submit', submitContactForm);
-
-            // Event delegation for remove buttons (dynamic)
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('remove-btn')) {
-                    removeRow(e.target);
-                }
-            });
-
-            // NEW: Score clamping on blur (0-100)
-            document.addEventListener('blur', function(e) {
-                if (e.target.type === 'number' && e.target.closest('#gradeTable, #editSessionTable')) {
-                    let val = parseFloat(e.target.value);
-                    if (isNaN(val)) val = '';
-                    else val = Math.max(0, Math.min(100, val));
-                    e.target.value = val;
-                }
-            }, true);
 
             // Load defaults
             const defaultSubjects = ['Mathematics', 'English', 'Science', 'History'];
@@ -2788,9 +2330,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
