@@ -1600,7 +1600,7 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.globalAlpha = 1; // Reset
                     
-                    resolve(canvas.toDataURL('suahco4.png'));
+                    resolve(canvas.toDataURL('Suahco4.png'));
                 };
                 img.onerror = () => {
                     console.warn('Image watermark failed; using text fallback');
@@ -1614,7 +1614,7 @@
                     ctx.textAlign = 'center';
                     ctx.fillText('Grade Calculator', 100, 50);
                     ctx.globalAlpha = 1;
-                    resolve(canvas.toDataURL('suahco4.png'));
+                    resolve(canvas.toDataURL('Suahco4.png'));
                 };
                 img.src = imgUrl;
             });
@@ -1752,7 +1752,7 @@
             const auth = window.auth;
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    alert('Logged in successfully!');
+                    //alert('Logged in successfully!');
                     document.getElementById('authForm').reset();
                     document.getElementById('authError').textContent = '';
                     loadProfile();
@@ -1768,7 +1768,7 @@
             const { signOut } = window;
             const auth = window.auth;
             signOut(auth).then(() => {
-                alert('Logged out successfully!');
+                //alert('Logged out successfully!');
                 currentUser = null;
                 updateAuthUI();
                 showSection('grades');
@@ -2788,4 +2788,5 @@
     </script>
 </body>
 </html>
+
 
