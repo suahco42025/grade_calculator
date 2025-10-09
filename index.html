@@ -2532,11 +2532,11 @@
                     console.error('Auto-Reply Error (non-blocking):', replyError);
                 });
 
-                alert('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
+                document.write('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
                 document.getElementById('contactForm').reset();
             }, (error) => {
                 console.error('Main EmailJS Error:', error);
-                alert('Failed to send message. Please try again or email us directly.');
+                document.write('Failed to send message. Please try again or email us directly.');
             });
         }
 
@@ -2788,5 +2788,6 @@
     </script>
 </body>
 </html>
+
 
 
