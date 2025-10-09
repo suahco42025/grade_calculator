@@ -1529,8 +1529,8 @@
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
 
-        // NEW: OpenAI API Key - Your actual key (fallback)
-        const OPENAI_API_KEY = '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';
+        // UPDATED: OpenAI API Key - Your new fresh key
+        const OPENAI_API_KEY = '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';
 
         // NEW: Debounce utility for input events
         function debounce(fn, delay) {
@@ -1568,17 +1568,21 @@
 
             // Use saved key (fallback to hardcoded)
             let apiKey = localStorage.getItem('openaiApiKey') || OPENAI_API_KEY;
+            console.log('Using API Key:', apiKey ? 'Set' : 'Missing'); // Debug log
+
             if (!apiKey || apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
-                showAIStatus('Please add your OpenAI API key in Settings.', 'error');
+                showAIStatus('❌ No API key found. Add it in Settings > AI Assistant Key.', 'error');
+                addMessageToChat('Error: Set your OpenAI key first!', 'ai');
                 return;
             }
 
             // Add user message to chat
             addMessageToChat(message, 'user');
             input.value = '';
-            showAIStatus('Thinking...', 'loading');
+            showAIStatus('🤔 Thinking...', 'loading');
 
             try {
+                console.log('Sending request to OpenAI...'); // Debug log
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -1599,20 +1603,30 @@
                     })
                 });
 
-                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                console.log('Response status:', response.status); // Debug log
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('OpenAI Error Details:', errorText); // Full error in console
+                    throw new Error(`API Error ${response.status}: ${errorText}`);
+                }
 
                 const data = await response.json();
+                console.log('AI Response Data:', data); // Debug log
                 const aiReply = data.choices[0].message.content;
                 addMessageToChat(aiReply, 'ai');
-                showAIStatus('Message sent!', 'success');
+                showAIStatus('✅ Sent!', 'success');
             } catch (error) {
-                console.error('AI Error:', error);
-                showAIStatus('Sorry, AI is having trouble. Check your key in Settings or try again.', 'error');
-                addMessageToChat('Error: Could not get response. Please try again.', 'ai');
+                console.error('Full AI Error:', error); // Detailed error log
+                const errorMsg = error.message.includes('401') ? '❌ Invalid API key—check your OpenAI dashboard.' :
+                                 error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
+                                 '❌ Connection issue. Check internet or try again.';
+                showAIStatus(errorMsg, 'error');
+                addMessageToChat(`Sorry! ${errorMsg} Let's try another question.`, 'ai');
             }
         }
 
-        // NEW: Send message for floating chat (reuses same logic)
+        // UPDATED: Send message for floating chat (with better error logging)
         async function sendMessageToFloatingAI() {
             const input = document.getElementById('floatingChatInput');
             const message = input.value.trim();
@@ -1620,17 +1634,21 @@
 
             // Use saved key (fallback to hardcoded)
             let apiKey = localStorage.getItem('openaiApiKey') || OPENAI_API_KEY;
+            console.log('Using API Key:', apiKey ? 'Set' : 'Missing'); // Debug log
+
             if (!apiKey || apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
-                showFloatingAIStatus('Please add your OpenAI API key in Settings.', 'error');
+                showFloatingAIStatus('❌ No API key found. Add it in Settings > AI Assistant Key.', 'error');
+                addMessageToFloatingChat('Error: Set your OpenAI key first!', 'ai');
                 return;
             }
 
             // Add user message to floating chat
             addMessageToFloatingChat(message, 'user');
             input.value = '';
-            showFloatingAIStatus('Thinking...', 'loading');
+            showFloatingAIStatus('🤔 Thinking...', 'loading');
 
             try {
+                console.log('Sending request to OpenAI...'); // Debug log
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -1651,16 +1669,26 @@
                     })
                 });
 
-                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                console.log('Response status:', response.status); // Debug log
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('OpenAI Error Details:', errorText); // Full error in console
+                    throw new Error(`API Error ${response.status}: ${errorText}`);
+                }
 
                 const data = await response.json();
+                console.log('AI Response Data:', data); // Debug log
                 const aiReply = data.choices[0].message.content;
                 addMessageToFloatingChat(aiReply, 'ai');
-                showFloatingAIStatus('Message sent!', 'success');
+                showFloatingAIStatus('✅ Sent!', 'success');
             } catch (error) {
-                console.error('AI Error:', error);
-                showFloatingAIStatus('Sorry, AI is having trouble. Check your key in Settings or try again.', 'error');
-                addMessageToFloatingChat('Error: Could not get response. Please try again.', 'ai');
+                console.error('Full AI Error:', error); // Detailed error log
+                const errorMsg = error.message.includes('401') ? '❌ Invalid API key—check your OpenAI dashboard.' :
+                                 error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
+                                 '❌ Connection issue. Check internet or try again.';
+                showFloatingAIStatus(errorMsg, 'error');
+                addMessageToFloatingChat(`Sorry! ${errorMsg} Let's try another question.`, 'ai');
             }
         }
 
