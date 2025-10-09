@@ -2532,11 +2532,11 @@
                     console.error('Auto-Reply Error (non-blocking):', replyError);
                 });
 
-                document.write('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
+                console.log('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
                 document.getElementById('contactForm').reset();
             }, (error) => {
                 console.error('Main EmailJS Error:', error);
-                document.write('Failed to send message. Please try again or email us directly.');
+                console.log('Failed to send message. Please try again or email us directly.');
             });
         }
 
@@ -2664,7 +2664,7 @@
         function saveDefaultSubjects() {
             const subjects = document.getElementById('defaultSubjectsInput').value;
             localStorage.setItem('defaultSubjects', subjects);
-            alert('Default subjects saved! Refresh page to see changes.');
+            //alert('Default subjects saved! Refresh page to see changes.');
         }
 
         // Toggle date in exports
@@ -2686,7 +2686,7 @@
                 document.getElementById('result').innerHTML = '';
                 document.getElementById('progressBar').style.display = 'none'; // NEW: Hide progress bar
                 clearError();
-                alert('Data cleared! Back to defaults.');
+                //alert('Data cleared! Back to defaults.');
                 showSection('grades');
             }
         }
@@ -2701,7 +2701,7 @@
 
             // UPDATED: Initialize EmailJS with error handling
             try {
-                emailjs.init('YOUR_FULL_PUBLIC_KEY_HERE'); // Replace with your actual EmailJS public key
+                emailjs.init('mMoFbLBQtA226NQY_'); // Replace with your actual EmailJS public key
             } catch (err) {
                 console.warn('EmailJS init failed:', err);
                 // Fallback: Show a message in contact form
@@ -2788,6 +2788,7 @@
     </script>
 </body>
 </html>
+
 
 
 
