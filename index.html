@@ -843,6 +843,160 @@
             font-size: 14px;
             margin-top: 10px;
         }
+        /* NEW: Floating AI Chat Widget */
+        .floating-chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3498db, #27ae60);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 200;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            font-size: 24px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .floating-chat-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+        .floating-chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 300px;
+            height: 400px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            z-index: 199;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .floating-chat-window.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .floating-chat-header {
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .floating-chat-header h4 {
+            margin: 0;
+            font-size: 16px;
+        }
+        .floating-chat-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .floating-chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        .floating-chat-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background: white;
+        }
+        .floating-chat-input input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 14px;
+        }
+        .floating-chat-input button {
+            padding: 8px 12px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .floating-chat-input button:hover {
+            background: #229954;
+        }
+        .floating-chat-status {
+            font-size: 12px;
+            text-align: center;
+            padding: 5px;
+            color: #666;
+            background: #f8f9fa;
+        }
+        .floating-chat-full-link {
+            text-align: center;
+            padding: 5px;
+            font-size: 12px;
+        }
+        .floating-chat-full-link a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .floating-chat-full-link a:hover {
+            text-decoration: underline;
+        }
+        /* Mobile adjustments for floating chat */
+        @media (max-width: 768px) {
+            .floating-chat-toggle {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+                bottom: 15px;
+                right: 15px;
+            }
+            .floating-chat-window {
+                width: calc(100vw - 30px);
+                height: 80vh;
+                bottom: 70px;
+                right: 15px;
+            }
+            .floating-chat-header h4 {
+                font-size: 14px;
+            }
+        }
+        /* Dark mode for floating chat */
+        body.dark-mode .floating-chat-window {
+            background: #34495e;
+            border-color: #5a6c7d;
+            color: #ecf0f1;
+        }
+        body.dark-mode .floating-chat-messages {
+            background: #3d566e;
+        }
+        body.dark-mode .floating-chat-input {
+            background: #34495e;
+        }
+        body.dark-mode .floating-chat-input input {
+            background: #3d566e;
+            border-color: #5a6c7d;
+            color: #ecf0f1;
+        }
+        body.dark-mode .floating-chat-status {
+            color: #a0a0a0;
+            background: #3d566e;
+        }
     </style>
 </head>
 <body>
@@ -857,7 +1011,7 @@
                 <li><a href="#" onclick="showSection('profile')">Profile</a></li>
                 <li><a href="#" onclick="showSection('settings')">Settings</a></li>
                 <li><a href="#" onclick="showSection('help')">Help</a></li>
-                <li><a href="#" onclick="showSection('ai')">🤖 AI Assistant</a></li> <!-- NEW: AI Nav Item -->
+                <li><a href="#" onclick="toggleFloatingChat()">🤖 AI Assistant</a></li> <!-- Updated to toggle floating chat -->
                 <li><a href="#" onclick="showSection('contact')">Contact</a></li>
             </ul>
             <div class="nav-profile">
@@ -874,6 +1028,28 @@
             </div>
         </div>
     </nav>
+
+    <!-- NEW: Floating AI Chat Toggle Button -->
+    <button class="floating-chat-toggle" onclick="toggleFloatingChat()" title="Chat with AI Assistant">🤖</button>
+
+    <!-- NEW: Floating AI Chat Window -->
+    <div id="floatingChatWindow" class="floating-chat-window">
+        <div class="floating-chat-header">
+            <h4>🤖 AI Assistant</h4>
+            <button class="floating-chat-close" onclick="toggleFloatingChat()">&times;</button>
+        </div>
+        <div id="floatingChatMessages" class="floating-chat-messages">
+            <div class="ai-message ai">Hi! I'm your AI assistant. Ask me about your grades, study advice, or tool tips. For example: "How do I improve my Math score?"</div>
+        </div>
+        <div class="floating-chat-input">
+            <input type="text" id="floatingChatInput" placeholder="Type your question..." onkeypress="handleFloatingKeyPress(event)">
+            <button onclick="sendMessageToFloatingAI()">Send</button>
+        </div>
+        <div id="floatingChatStatus" class="floating-chat-status"></div>
+        <div class="floating-chat-full-link">
+            <a href="#" onclick="showSection('ai'); toggleFloatingChat();">Open Full Chat →</a>
+        </div>
+    </div>
 
     <div class="container">
         <!-- Wrapped: Grades Section -->
@@ -926,7 +1102,7 @@
             <div id="error" class="error"></div>
         </section>
 
-        <!-- NEW: AI Assistant Section (hidden by default) -->
+        <!-- UPDATED: AI Assistant Section (now hidden by default, accessible via floating chat) -->
         <section id="ai-section" class="ai-section" style="display: none;">
             <h1>🤖 AI Assistant</h1>
             <div class="ai-content">
@@ -1353,8 +1529,8 @@
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
 
-        // NEW: OpenAI API Key - REPLACE WITH YOUR KEY
-        const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY_HERE'; // e.g., 'sk-abc123...'
+        // NEW: OpenAI API Key - Your actual key (fallback)
+        const OPENAI_API_KEY = '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';
 
         // NEW: Debounce utility for input events
         function debounce(fn, delay) {
@@ -1375,9 +1551,14 @@
             return 'F';
         }
 
-        // NEW: AI Chat Functions
+        // UPDATED: AI Chat Functions (now supports floating chat)
         function handleKeyPress(e) {
             if (e.key === 'Enter') sendMessageToAI();
+        }
+
+        // NEW: Floating chat keypress handler
+        function handleFloatingKeyPress(e) {
+            if (e.key === 'Enter') sendMessageToFloatingAI();
         }
 
         async function sendMessageToAI() {
@@ -1385,8 +1566,10 @@
             const message = input.value.trim();
             if (!message) return;
 
-            if (!OPENAI_API_KEY || OPENAI_API_KEY === 'YOUR_OPENAI_API_KEY_HERE') {
-                showAIStatus('Please add your OpenAI API key in the script to use AI.', 'error');
+            // Use saved key (fallback to hardcoded)
+            let apiKey = localStorage.getItem('openaiApiKey') || OPENAI_API_KEY;
+            if (!apiKey || apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
+                showAIStatus('Please add your OpenAI API key in Settings.', 'error');
                 return;
             }
 
@@ -1400,7 +1583,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                        'Authorization': `Bearer ${apiKey}`
                     },
                     body: JSON.stringify({
                         model: 'gpt-3.5-turbo',
@@ -1424,13 +1607,75 @@
                 showAIStatus('Message sent!', 'success');
             } catch (error) {
                 console.error('AI Error:', error);
-                showAIStatus('Sorry, AI is having trouble. Check your API key or try again.', 'error');
+                showAIStatus('Sorry, AI is having trouble. Check your key in Settings or try again.', 'error');
                 addMessageToChat('Error: Could not get response. Please try again.', 'ai');
+            }
+        }
+
+        // NEW: Send message for floating chat (reuses same logic)
+        async function sendMessageToFloatingAI() {
+            const input = document.getElementById('floatingChatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Use saved key (fallback to hardcoded)
+            let apiKey = localStorage.getItem('openaiApiKey') || OPENAI_API_KEY;
+            if (!apiKey || apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
+                showFloatingAIStatus('Please add your OpenAI API key in Settings.', 'error');
+                return;
+            }
+
+            // Add user message to floating chat
+            addMessageToFloatingChat(message, 'user');
+            input.value = '';
+            showFloatingAIStatus('Thinking...', 'loading');
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
+                            },
+                            { role: 'user', content: message }
+                        ],
+                        max_tokens: 150,
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+                const data = await response.json();
+                const aiReply = data.choices[0].message.content;
+                addMessageToFloatingChat(aiReply, 'ai');
+                showFloatingAIStatus('Message sent!', 'success');
+            } catch (error) {
+                console.error('AI Error:', error);
+                showFloatingAIStatus('Sorry, AI is having trouble. Check your key in Settings or try again.', 'error');
+                addMessageToFloatingChat('Error: Could not get response. Please try again.', 'ai');
             }
         }
 
         function addMessageToChat(message, sender) {
             const messagesDiv = document.getElementById('aiChatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${sender}`;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // NEW: Add message to floating chat
+        function addMessageToFloatingChat(message, sender) {
+            const messagesDiv = document.getElementById('floatingChatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `ai-message ${sender}`;
             messageDiv.textContent = message;
@@ -1446,6 +1691,43 @@
                 setTimeout(() => { statusDiv.textContent = ''; statusDiv.className = 'ai-status'; }, 3000);
             }
         }
+
+        // NEW: Show status for floating chat
+        function showFloatingAIStatus(message, type) {
+            const statusDiv = document.getElementById('floatingChatStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `floating-chat-status ${type}`;
+            if (type !== 'loading') {
+                setTimeout(() => { statusDiv.textContent = ''; statusDiv.className = 'floating-chat-status'; }, 3000);
+            }
+        }
+
+        // NEW: Toggle floating chat window
+        function toggleFloatingChat() {
+            const window = document.getElementById('floatingChatWindow');
+            window.classList.toggle('active');
+            if (window.classList.contains('active')) {
+                document.getElementById('floatingChatInput').focus();
+            }
+        }
+
+        // NEW: Close floating chat on outside click or Escape
+        document.addEventListener('click', function(e) {
+            const window = document.getElementById('floatingChatWindow');
+            const toggleBtn = document.querySelector('.floating-chat-toggle');
+            if (window.classList.contains('active') && !window.contains(e.target) && !toggleBtn.contains(e.target)) {
+                window.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const window = document.getElementById('floatingChatWindow');
+                if (window.classList.contains('active')) {
+                    window.classList.remove('active');
+                }
+            }
+        });
 
         // JS Fallback for www redirect (uncomment if no custom domain)
         /*
@@ -2153,10 +2435,9 @@
                 const profileSec = document.getElementById('profile-section');
                 if (profileSec) profileSec.style.display = 'block';
                 loadProfile();
-            } else if (section === 'ai') { // NEW: AI Section
-                const aiSec = document.getElementById('ai-section');
-                if (aiSec) aiSec.style.display = 'block';
-                document.getElementById('aiChatInput').focus();
+            } else if (section === 'ai') { // UPDATED: Now opens floating chat instead
+                toggleFloatingChat();
+                return; // Don't proceed to show full section
             } else if (section === 'contact') {
                 const contactSec = document.getElementById('contact-section');
                 if (contactSec) contactSec.style.display = 'block';
