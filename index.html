@@ -997,6 +997,11 @@
             color: #a0a0a0;
             background: #3d566e;
         }
+        /* NEW: Improved dark mode placeholder */
+        body.dark-mode input::placeholder { 
+            color: #a0a0a0 !important; 
+            opacity: 0.8 !important; 
+        }
     </style>
 </head>
 <body>
@@ -1529,8 +1534,7 @@
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
 
-        // UPDATED: OpenAI API Key - Your new fresh key
-        const OPENAI_API_KEY = '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';
+        // REMOVED: Hardcoded OPENAI_API_KEY - now handled server-side via /api/openai
 
         // NEW: Debounce utility for input events
         function debounce(fn, delay) {
@@ -1551,7 +1555,7 @@
             return 'F';
         }
 
-        // UPDATED: AI Chat Functions (now supports floating chat)
+        // UPDATED: AI Chat Functions (now proxies through /api/openai)
         function handleKeyPress(e) {
             if (e.key === 'Enter') sendMessageToAI();
         }
@@ -1566,81 +1570,44 @@
             const message = input.value.trim();
             if (!message) return;
 
-            // Use saved key (fallback to hardcoded)
-            let apiKey = localStorage.getItem('openaiApiKey') || OPENAI_API_KEY;
-            console.log('Using API Key:', apiKey ? 'Set' : 'Missing'); // Debug log
-
-            if (!apiKey || apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
-                showAIStatus('❌ No API key found. Add it in Settings > AI Assistant Key.', 'error');
-                addMessageToChat('Error: Set your OpenAI key first!', 'ai');
-                return;
-            }
-
             // Add user message to chat
             addMessageToChat(message, 'user');
             input.value = '';
             showAIStatus('🤔 Thinking...', 'loading');
 
             try {
-                console.log('Sending request to OpenAI...'); // Debug log
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                const response = await fetch('/api/openai', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-3.5-turbo',
-                        messages: [
-                            {
-                                role: 'system',
-                                content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
-                            },
-                            { role: 'user', content: message }
-                        ],
-                        max_tokens: 150,
-                        temperature: 0.7
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
                 });
 
-                console.log('Response status:', response.status); // Debug log
-
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('OpenAI Error Details:', errorText); // Full error in console
-                    throw new Error(`API Error ${response.status}: ${errorText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'API Error');
                 }
 
                 const data = await response.json();
-                console.log('AI Response Data:', data); // Debug log
-                const aiReply = data.choices[0].message.content;
+                const aiReply = data.reply;
                 addMessageToChat(aiReply, 'ai');
                 showAIStatus('✅ Sent!', 'success');
+                input.focus(); // FIXED: Refocus after send
             } catch (error) {
-                console.error('Full AI Error:', error); // Detailed error log
-                const errorMsg = error.message.includes('401') ? '❌ Invalid API key—check your OpenAI dashboard.' :
-                                 error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
-                                 '❌ Connection issue. Check internet or try again.';
+                console.error('AI Error:', error);
+                const errorMsg = error.message.includes('500') ? '❌ Server issue—try again.' :
+                                 error.message.includes('400') ? '❌ Empty message—type something!' :
+                                 '❌ Connection issue. Check internet.';
                 showAIStatus(errorMsg, 'error');
                 addMessageToChat(`Sorry! ${errorMsg} Let's try another question.`, 'ai');
+                input.focus(); // FIXED: Refocus on error
             }
         }
 
-        // UPDATED: Send message for floating chat (with better error logging)
+        // UPDATED: Send message for floating chat
         async function sendMessageToFloatingAI() {
             const input = document.getElementById('floatingChatInput');
             const message = input.value.trim();
             if (!message) return;
-
-            // Use saved key (fallback to hardcoded)
-            let apiKey = localStorage.getItem('openaiApiKey') || OPENAI_API_KEY;
-            console.log('Using API Key:', apiKey ? 'Set' : 'Missing'); // Debug log
-
-            if (!apiKey || apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
-                showFloatingAIStatus('❌ No API key found. Add it in Settings > AI Assistant Key.', 'error');
-                addMessageToFloatingChat('Error: Set your OpenAI key first!', 'ai');
-                return;
-            }
 
             // Add user message to floating chat
             addMessageToFloatingChat(message, 'user');
@@ -1648,47 +1615,30 @@
             showFloatingAIStatus('🤔 Thinking...', 'loading');
 
             try {
-                console.log('Sending request to OpenAI...'); // Debug log
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                const response = await fetch('/api/openai', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-3.5-turbo',
-                        messages: [
-                            {
-                                role: 'system',
-                                content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
-                            },
-                            { role: 'user', content: message }
-                        ],
-                        max_tokens: 150,
-                        temperature: 0.7
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
                 });
 
-                console.log('Response status:', response.status); // Debug log
-
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('OpenAI Error Details:', errorText); // Full error in console
-                    throw new Error(`API Error ${response.status}: ${errorText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'API Error');
                 }
 
                 const data = await response.json();
-                console.log('AI Response Data:', data); // Debug log
-                const aiReply = data.choices[0].message.content;
+                const aiReply = data.reply;
                 addMessageToFloatingChat(aiReply, 'ai');
                 showFloatingAIStatus('✅ Sent!', 'success');
+                input.focus(); // FIXED: Refocus after send
             } catch (error) {
-                console.error('Full AI Error:', error); // Detailed error log
-                const errorMsg = error.message.includes('401') ? '❌ Invalid API key—check your OpenAI dashboard.' :
-                                 error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
-                                 '❌ Connection issue. Check internet or try again.';
+                console.error('Floating AI Error:', error);
+                const errorMsg = error.message.includes('500') ? '❌ Server issue—try again.' :
+                                 error.message.includes('400') ? '❌ Empty message—type something!' :
+                                 '❌ Connection issue. Check internet.';
                 showFloatingAIStatus(errorMsg, 'error');
                 addMessageToFloatingChat(`Sorry! ${errorMsg} Let's try another question.`, 'ai');
+                input.focus(); // FIXED: Refocus on error
             }
         }
 
@@ -2400,6 +2350,13 @@
             const subject = document.getElementById('contactSubject').value.trim();
             const message = document.getElementById('contactMessage').value.trim();
 
+            // UPDATED: Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+
             if (!name || !email || !subject || !message) {
                 alert('Please fill in all fields.');
                 return;
@@ -2590,8 +2547,13 @@
             // FIXED: Force close mobile nav on load/refresh
             closeMobileNav();
 
-            // Initialize EmailJS
-            emailjs.init('mMoFbLBQtA226NQY_');
+            // UPDATED: Initialize EmailJS with check
+            if (typeof emailjs !== 'undefined') {
+                emailjs.init('mMoFbLBQtA226NQY_');
+                console.log('EmailJS initialized');
+            } else {
+                console.warn('EmailJS not loaded - check CDN link');
+            }
 
             // Initialize Firebase Auth (now calls updateAuthUI immediately)
             initAuth();
