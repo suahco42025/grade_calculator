@@ -1,63 +1,54 @@
-// api/openai.js (Swapped to Groq - Free & Fast)
-export default async function handler(req, res) {
-  console.log('Groq proxy called:', req.method, req.body);
+// api/openai.js (or api/groq.js) - Vercel/Netlify Function
+import Groq from 'groq-sdk';  // npm i groq-sdk (if not already)
 
+const groq = new Groq({ 
+  apiKey: process.env.GROQ_API_KEY  // Set this in your env vars
+});
+
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  
   const { message } = req.body;
-  if (!message) {
-    return res.status(400).json({ error: 'Message is required' });
-  }
-
-  const apiKey = process.env.GROQ_API_KEY; // NEW: Use Groq env var
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ error: 'No valid message provided' });
   }
 
   try {
-    console.log('Fetching from Groq...');
-    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', { // Groq's OpenAI-compatible endpoint
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama3-8b-8192', // Free, fast model (or 'mixtral-8x7b-32768' for more power)
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
-          },
-          { role: 'user', content: message }
-        ],
-        max_tokens: 150,
-        temperature: 0.7
-      }),
+    console.log('Groq proxy called:', req.body);  // Your log—keep this for debugging
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a helpful, concise AI assistant for a grade calculator app. Provide friendly study tips, grade advice, or tool explanations. Keep responses under 200 words.' 
+        },
+        { role: 'user', content: message }
+      ],
+      model: 'llama3-70b-8192',  // FIXED: Valid model (was deprecated)
+      max_tokens: 300,
+      temperature: 0.7,
+      stream: false  // Set to true for streaming if you want real-time responses
     });
 
-    console.log('Groq status:', groqResponse.status);
+    const reply = completion.choices[0]?.message?.content?.trim() || 'Sorry, I couldn\'t generate a response.';
+    console.log('Groq reply generated:', reply.substring(0, 100) + '...');  // Log snippet for debug
 
-    if (!groqResponse.ok) {
-      const errorText = await groqResponse.text();
-      console.error('Groq error:', errorText);
-      throw new Error(`Groq API Error: ${groqResponse.status} - ${errorText}`);
-    }
-
-    const data = await groqResponse.json();
-    const aiReply = data.choices[0].message.content;
-    console.log('Groq reply generated');
-
-    res.status(200).json({ reply: aiReply });
+    res.status(200).json({ reply });
   } catch (error) {
-    console.error('Full proxy error:', error.message);
-    res.status(500).json({ error: 'Failed to get response from AI' });
+    console.error('Groq API Error:', error.response?.data || error.message);
+    
+    // Graceful error handling
+    let errorMsg = 'Groq API failed—try again in a sec.';
+    if (error.response?.status === 400) {
+      errorMsg = 'Invalid request—check your message format.';
+    } else if (error.response?.status === 429) {
+      errorMsg = 'Rate limit hit—slow down a bit!';
+    } else if (error.response?.status === 401) {
+      errorMsg = 'API key issue—check your Groq credentials.';
+    }
+    
+    res.status(error.response?.status || 500).json({ error: errorMsg });
   }
 }
-
