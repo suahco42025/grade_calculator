@@ -9,7 +9,7 @@
     <meta name="author" content="Grade Calculator Team">
     <meta name="robots" content="index, follow">
     <meta http-equiv="Cache-Control" content="public, max-age=31536000"> <!-- 1-year caching fallback for images/assets -->
-    <link rel="canonical" href="https://YOUR_DOMAIN_HERE/Grade-Calculator/"> <!-- Update to your custom domain, e.g., https://gradecalculator.co/Grade-Calculator/ -->
+    <link rel="canonical" href="https://gradecalculator.vercel.app/Grade-Calculator/"> <!-- Updated to Vercel example; change to your domain -->
 
     <!-- Preload critical images for better caching/performance -->
     <link rel="preload" href="favicon.ico" as="image">
@@ -29,15 +29,15 @@
     <meta property="og:title" content="Grade Calculator | Free Online GPA & Average Tool">
     <meta property="og:description" content="Calculate grades, track progress, and export reports. Join thousands of students using our free tool.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://YOUR_DOMAIN_HERE/Grade-Calculator/"> <!-- Update to your custom domain -->
-    <meta property="og:image" content="https://YOUR_DOMAIN_HERE/og-image.jpg"> <!-- Add a 1200x630 promo image; update path -->
+    <meta property="og:url" content="https://gradecalculator.vercel.app/Grade-Calculator/"> <!-- Updated to Vercel example -->
+    <meta property="og:image" content="https://gradecalculator.vercel.app/og-image.jpg"> <!-- Add a 1200x630 promo image; update path -->
     <meta property="og:site_name" content="Grade Calculator">
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Grade Calculator | Free GPA Tool">
     <meta name="twitter:description" content="Track grades, calculate averages, export to PDF. Free and easy!">
-    <meta name="twitter:image" content="https://YOUR_DOMAIN_HERE/twitter-image.jpg"> <!-- 1200x675 image; update path -->
+    <meta name="twitter:image" content="https://gradecalculator.vercel.app/twitter-image.jpg"> <!-- 1200x675 image; update path -->
 
     <!-- Structured Data (JSON-LD for Educational App) -->
     <script type="application/ld+json">
@@ -45,7 +45,7 @@
         "@context": "https://schema.org",
         "@type": "EducationalOrganization",
         "name": "Grade Calculator",
-        "url": "https://YOUR_DOMAIN_HERE/Grade-Calculator/",
+        "url": "https://gradecalculator.vercel.app/Grade-Calculator/",
         "description": "Free online tool for calculating student grades, GPAs, and generating reports.",
         "applicationCategory": "EducationApplication",
         "operatingSystem": "Web",
@@ -235,6 +235,11 @@
             font-weight: bold;
             color: #27ae60;
         }
+        .average-cell small {
+            font-size: 12px;
+            color: #666;
+            display: block;
+        }
         .period-avg-row {
             background-color: #e8f4fd;
             font-weight: bold;
@@ -404,6 +409,12 @@
             }
             .nav-profile {
                 margin-left: auto;
+            }
+            /* NEW: Landscape mobile fix for table overflow */
+            @media (max-width: 768px) and (orientation: landscape) {
+                .container { padding: 10px; }
+                th, td { padding: 8px; font-size: 12px; }
+                input[type="number"], input[type="text"] { width: 60px; padding: 6px; font-size: 14px; }
             }
         }
         /* Help section styling */
@@ -1153,7 +1164,7 @@
                         <ol>
                             <li><strong>Add Subjects</strong>: Click "Add Subject" or use the pre-loaded ones (e.g., Mathematics). Edit names as needed.</li>
                             <li><strong>Enter Scores</strong>: Fill in numbers (0-100) for each period/exam. Scores below 70 auto-highlight in red!</li>
-                            <li><strong>Calculate</strong>: Click "Calculate Averages" to compute subject averages, period averages, and overall grade.</li>
+                            <li><strong>Calculate</strong>: Click "Calculate Averages" (<em>Pro Tip: Ctrl+Enter shortcut!</em>) to compute subject averages, period averages, and overall grade.</li>
                             <li><strong>Download</strong>: After calculating, use "Download CSV" (for Excel) or "Download PDF" (for printing). Files include only periods with data.</li>
                             <li><strong>Remove Rows</strong>: Click "Remove" next to any subject.</li>
                         </ol>
@@ -1576,13 +1587,21 @@
             return 'F';
         }
 
-        // NEW: Retry last message (for AI errors)
+        // UPDATED: Retry last message (for AI errors) - now handles both chat types
         let lastUserMessage = '';
-        function retryLastMessage() {
+        function retryLastMessage(chatType = 'full') {  // Default to full chat
             if (lastUserMessage) {
-                // Retry in full chat
-                document.getElementById('aiChatInput').value = lastUserMessage;
-                sendMessageToAI();
+                const input = chatType === 'floating' ? 
+                    document.getElementById('floatingChatInput') : 
+                    document.getElementById('aiChatInput');
+                if (input) {
+                    input.value = lastUserMessage;
+                    if (chatType === 'floating') {
+                        sendMessageToFloatingAI();
+                    } else {
+                        sendMessageToAI();
+                    }
+                }
             }
         }
 
@@ -1715,7 +1734,8 @@
                                  '❌ Connection issue. Check internet or try again.';
                 const fallbackMsg = 'AI is taking a break. Try: Focus on weak subjects for quick wins!';
                 showFloatingAIStatus(errorMsg, 'error');
-                addMessageToFloatingChat(`Sorry! ${errorMsg}. ${fallbackMsg} <button class="retry-btn" onclick="retryLastMessage()">Retry</button>`, 'ai');
+                // UPDATED: Pass 'floating' to retry function
+                addMessageToFloatingChat(`Sorry! ${errorMsg}. ${fallbackMsg} <button class="retry-btn" onclick="retryLastMessage('floating')">Retry</button>`, 'ai');
             }
         }
 
@@ -1982,8 +2002,13 @@
             if (pdfBtn) pdfBtn.style.display = show ? 'inline-block' : 'none';
         }
 
-        // Download table as CSV (filtered to active columns)
+        // UPDATED: Download table as CSV (added empty table check)
         function downloadCSV() {
+            // FIXED: Add validation like PDF
+            if (activeColumns.length === 0) {
+                alert('No scores entered. Calculate averages first!');
+                return;
+            }
             const table = document.getElementById('gradeTable');
             const tbodyRows = Array.from(table.querySelectorAll('tbody tr'));
             let csvContent = '';
@@ -2128,7 +2153,7 @@
             localStorage.setItem('gpaMode', isGPAMode);
         }
 
-        // Function to calculate averages
+        // UPDATED: Function to calculate averages (with GPA scaling)
         function calculateAverages() {
             try {
                 const rows = document.querySelectorAll('#gradeTable tbody tr');
@@ -2136,6 +2161,9 @@
                     showError('Please add at least one subject.');
                     return;
                 }
+
+                // UPDATED: GPA scaling function
+                const scale = isGPAMode ? (score) => Math.min(4.0, score / 25) : (score) => score;  // Rough 4.0 mapping
 
                 const columnTotals = new Array(numScoreColumns).fill(0);
                 const columnCounts = new Array(numScoreColumns).fill(0);
@@ -2174,17 +2202,21 @@
                         }
                         if (score > 100) score = 100; // Clamp to 100
 
-                        subjectTotal += score;
+                        // UPDATED: Apply scaling
+                        const scaledScore = scale(score);
+                        subjectTotal += scaledScore;
                         subjectValid++;
-                        grandTotal += score;
+                        grandTotal += scaledScore;
                         grandCount++;
 
-                        columnTotals[i] += score;
+                        columnTotals[i] += scaledScore;
                         columnCounts[i]++;
                     }
 
                     const subjectAvg = subjectValid > 0 ? (subjectTotal / subjectValid).toFixed(2) : '0.00';
-                    if (avgCell) avgCell.textContent = subjectAvg;
+                    // UPDATED: Append letter grade
+                    const letter = getLetterGrade(subjectAvg);
+                    if (avgCell) avgCell.innerHTML = `${subjectAvg} <small>(${letter})</small>`;
                     lastSubjectAvgs.push({ name: subjectInput.value.trim(), avg: parseFloat(subjectAvg) });
                 }
 
@@ -2197,13 +2229,13 @@
                     const colAvg = columnCounts[i] > 0 ? (columnTotals[i] / columnCounts[i]).toFixed(2) : '0.00';
                     const colId = columnIdMap[i];
                     const el = document.getElementById(colId);
-                    if (el) el.textContent = colAvg;
+                    if (el) el.innerHTML = `${colAvg} <small>(${getLetterGrade(colAvg)})</small>`; // UPDATED: Append letter
                 }
 
                 const overallAvg = grandCount > 0 ? (grandTotal / grandCount).toFixed(2) : '0.00';
                 lastOverallAvg = overallAvg;
                 const overallEl = document.getElementById('overallAverage');
-                if (overallEl) overallEl.textContent = overallAvg + '%';
+                if (overallEl) overallEl.innerHTML = `${overallAvg} <small>(${getLetterGrade(overallAvg)})</small>`; // UPDATED: Append letter
 
                 // Track active columns (with data)
                 activeColumns = [];
@@ -2227,7 +2259,7 @@
         function displayResult(average) {
             const resultDiv = document.getElementById('result');
             const letter = getLetterGrade(average);
-            let displayText = `Overall Average Grade: ${average}% (${letter})`;
+            let displayText = `Overall Average Grade: ${average} (${letter})`;
             if (isGPAMode) {
                 const gpa = (parseFloat(average) / 25).toFixed(2); // Rough 4.0 mapping (90-100=A=4.0, etc.)
                 displayText += ` | GPA: ${gpa}/4.0 (GPA Mode)`;
@@ -2413,7 +2445,7 @@
             const totalSubjects = lastSubjectAvgs.length;
             const bestSubject = lastSubjectAvgs.reduce((max, curr) => curr.avg > max.avg ? curr : max);
             const worstSubject = lastSubjectAvgs.reduce((min, curr) => curr.avg < min.avg ? curr : min);
-            let overallDisplay = `${lastOverallAvg}%`;
+            let overallDisplay = `${lastOverallAvg}`;
             if (isGPAMode) {
                 const gpa = (parseFloat(lastOverallAvg) / 25).toFixed(2);
                 overallDisplay += ` (${gpa}/4.0 GPA)`;
@@ -2429,11 +2461,11 @@
                 </div>
                 <div class="stat-item">
                     <div>Best: ${bestSubject.name}</div>
-                    <div class="stat-value">${bestSubject.avg}%</div>
+                    <div class="stat-value">${bestSubject.avg}</div>
                 </div>
                 <div class="stat-item">
                     <div>Worst: ${worstSubject.name}</div>
-                    <div class="stat-value">${worstSubject.avg}%</div>
+                    <div class="stat-value">${worstSubject.avg}</div>
                 </div>
             `;
         }
@@ -2473,7 +2505,9 @@
                 }).then((replyResult) => {
                     console.log('Auto-Reply Success:', replyResult.text);
                 }).catch((replyError) => {
-                    console.warn('Auto-Reply failed (non-critical):', replyError);  // Downgraded to warn
+                    console.warn('Auto-Reply failed (non-critical):', replyError);
+                    // ENHANCED: Optional user notification on partial failure
+                    // alert('Message sent, but auto-reply delayed—check spam folder!');
                 });
 
                 alert('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
@@ -2634,6 +2668,14 @@
                 showSection('grades');
             }
         }
+
+        // NEW: Keyboard shortcut for calculate (Ctrl+Enter)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                calculateAverages();
+            }
+        });
 
         // Event listeners & Initial Load
         document.addEventListener('DOMContentLoaded', function() {
