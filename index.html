@@ -867,28 +867,28 @@
             font-size: 14px;
             margin-top: 10px;
         }
-        /* NEW: Floating AI Chat Widget - UPDATED FOR IMAGE ICON */
+        /* UPDATED: Floating AI Chat Widget - REMOVED GRADIENT BACKGROUND, USE ONLY suahco4.png */
         .floating-chat-toggle {
             position: fixed;
             bottom: 20px;
             right: 20px;
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #3498db, #27ae60);
-            border: none;
+            background: none; /* REMOVED: Gradient background - now transparent */
+            border: 2px solid #ddd; /* Subtle border for visibility */
             border-radius: 50%;
             cursor: pointer;
             z-index: 200;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            /* REMOVED: font-size and color (no longer needed for emoji) */
         }
         .floating-chat-toggle:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+            border-color: #3498db; /* Subtle hover border change */
         }
         .floating-chat-toggle img {
             width: 100%;
@@ -1061,19 +1061,19 @@
         </div>
     </nav>
 
-    <!-- UPDATED: Floating AI Chat Toggle Button - NOW WITH suahco4.png IMAGE -->
-    <button class="floating-chat-toggle" onclick="toggleFloatingChat()" title="Chat with AI Assistant">
-        <img src="Suahco4.png" alt="AI Assistant">
+    <!-- UPDATED: Floating Chat Toggle Button - NOW WITH ONLY suahco4.png (no background) -->
+    <button class="floating-chat-toggle" onclick="toggleFloatingChat()" title="Chat with Suahco Assistant">
+        <img src="Suahco4.png" alt="Suahco Assistant">
     </button>
 
-    <!-- NEW: Floating AI Chat Window -->
+    <!-- Floating Chat Window -->
     <div id="floatingChatWindow" class="floating-chat-window">
         <div class="floating-chat-header">
-            <h4>Suahco4 Assistant</h4>
+            <h4>Suahco Assistant</h4>
             <button class="floating-chat-close" onclick="toggleFloatingChat()">&times;</button>
         </div>
         <div id="floatingChatMessages" class="floating-chat-messages">
-            <div class="ai-message ai">Hi! I'm your AI assistant. Ask me about your grades, study advice, or tool tips. For example: "How do I improve my Math score?"</div>
+            <div class="ai-message ai">Hi! I'm your assistant. Ask me about your grades, study advice, or tool tips. For example: "How do I improve my Math score?"</div>
         </div>
         <div class="floating-chat-input">
             <input type="text" id="floatingChatInput" placeholder="Type your question..." onkeypress="handleFloatingKeyPress(event)">
@@ -1136,14 +1136,14 @@
             <div id="error" class="error"></div>
         </section>
 
-        <!-- UPDATED: AI Assistant Section (now hidden by default, accessible via floating chat) -->
+        <!-- AI Assistant Section (now hidden by default, accessible via floating chat) -->
         <section id="ai-section" class="ai-section" style="display: none;">
-            <h1>🤖 AI Assistant</h1>
+            <h1>🤖 Assistant</h1>
             <div class="ai-content">
                 <p style="text-align: center; color: #666;">Ask me anything about grades, study tips, or how to use this tool! (Powered by OpenAI)</p>
                 <div class="ai-chat-container">
                     <div id="aiChatMessages" class="ai-chat-messages">
-                        <div class="ai-message ai">Hi! I'm your AI assistant. Ask me about your grades, study advice, or tool tips. For example: "How do I improve my Math score?"</div>
+                        <div class="ai-message ai">Hi! I'm your assistant. Ask me about your grades, study advice, or tool tips. For example: "How do I improve my Math score?"</div>
                     </div>
                     <div class="ai-chat-input">
                         <input type="text" id="aiChatInput" placeholder="Type your question..." onkeypress="handleKeyPress(event)">
@@ -1829,7 +1829,7 @@
                 'settings': 'Settings | Grade Calculator - Customize Your Experience',
                 'profile': 'Profile | Grade Calculator - Manage Account & Sessions',
                 'contact': 'Contact Us | Grade Calculator - Get Support',
-                'ai': 'AI Assistant | Grade Calculator - Smart Study Help', // NEW
+                'ai': 'Assistant | Grade Calculator - Smart Study Help', // UPDATED: Removed "AI"
                 'privacy': 'Privacy Policy | Grade Calculator - Data Protection',
                 'terms': 'Terms of Service | Grade Calculator - User Agreement'
             };
@@ -1841,7 +1841,7 @@
                 const descriptions = {
                     'grades': 'Track grades across periods & exams with our free Grade Matrix Calculator. Calculate averages, export PDF/CSV, save sessions. Mobile-friendly & secure.',
                     'help': 'Learn to use Grade Calculator: add subjects, calculate averages, export reports. Free GPA tool for students.',
-                    'ai': 'Chat with our AI assistant for grade advice, study tips, and tool help.', // NEW
+                    'ai': 'Chat with our assistant for grade advice, study tips, and tool help.', // UPDATED: Removed "AI"
                     'contact': 'Contact Grade Calculator team for support on our free GPA tool.',
                     'privacy': 'Grade Calculator Privacy Policy: how we protect your data.',
                     'terms': 'Grade Calculator Terms of Service: rules for using our free grading tool.'
@@ -2741,5 +2741,3 @@
     </script>
 </body>
 </html>
-
-
