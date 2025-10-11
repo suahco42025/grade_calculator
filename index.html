@@ -815,6 +815,19 @@
             background: #e8f4fd;
             color: #2c3e50;
         }
+        .ai-message .retry-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+        .ai-message .retry-btn:hover {
+            background: #229954;
+        }
         .ai-chat-input {
             display: flex;
             padding: 15px;
@@ -996,11 +1009,6 @@
         body.dark-mode .floating-chat-status {
             color: #a0a0a0;
             background: #3d566e;
-        }
-        /* NEW: Improved dark mode placeholder */
-        body.dark-mode input::placeholder { 
-            color: #a0a0a0 !important; 
-            opacity: 0.8 !important; 
         }
     </style>
 </head>
@@ -1220,14 +1228,6 @@
                     <button onclick="applyThreshold()" class="small-btn">Apply</button>
                 </div>
                 
-                <!-- NEW: Weighted Grades Setting -->
-                <div class="setting-card">
-                    <h3>⚖️ Grade Weights</h3>
-                    <p>Comma-separated % weights for periods (defaults to equal). Recalculate after saving.</p>
-                    <input type="text" id="weightsInput" value="12.5,12.5,12.5,25,12.5,12.5,12.5,25" placeholder="e.g., 10,10,10,20,10,10,10,20">
-                    <button onclick="saveWeights()" class="small-btn">Save</button>
-                </div>
-                
                 <div class="setting-card">
                     <h3>📚 Default Subjects</h3>
                     <p>Comma-separated list (loads on page refresh).</p>
@@ -1266,8 +1266,6 @@
                         <input type="text" id="signupName" placeholder="Full Name (optional)">
                         <input type="email" id="authEmail" placeholder="Email" required>
                         <input type="password" id="authPassword" placeholder="Password" required>
-                        <!-- NEW: Confirm Password Field -->
-                        <input type="password" id="confirmPassword" placeholder="Confirm Password" required style="display: none;">
                         <button type="submit" id="authSubmit" class="small-btn">Sign Up</button>
                     </form>
                     <div class="auth-toggle">
@@ -1544,7 +1542,8 @@
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
 
-        // REMOVED: Hardcoded OPENAI_API_KEY - now handled server-side via /api/openai
+        // REMOVED: Hardcoded OpenAI key - now handled via Vercel proxy (/api/openai)
+        // Ensure you have /api/openai.js deployed on Vercel with OPENAI_API_KEY env var
 
         // NEW: Debounce utility for input events
         function debounce(fn, delay) {
@@ -1565,7 +1564,17 @@
             return 'F';
         }
 
-        // UPDATED: AI Chat Functions (now proxies through /api/openai)
+        // NEW: Retry last message (for AI errors)
+        let lastUserMessage = '';
+        function retryLastMessage() {
+            if (lastUserMessage) {
+                // Retry in full chat
+                document.getElementById('aiChatInput').value = lastUserMessage;
+                sendMessageToAI();
+            }
+        }
+
+        // UPDATED: AI Chat Functions (now proxies through Vercel /api/openai)
         function handleKeyPress(e) {
             if (e.key === 'Enter') sendMessageToAI();
         }
@@ -1575,15 +1584,12 @@
             if (e.key === 'Enter') sendMessageToFloatingAI();
         }
 
-        // UPDATED: Send message for full AI chat (with grade context + refocus fix)
         async function sendMessageToAI() {
             const input = document.getElementById('aiChatInput');
             const message = input.value.trim();
             if (!message) return;
 
-            // NEW: Add grade context for personalized responses
-            const gradeContext = `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join(', ') || 'None yet'}.`;
-            const fullMessage = `${gradeContext} User: ${message}`;
+            lastUserMessage = message; // For retry
 
             // Add user message to chat
             addMessageToChat(message, 'user');
@@ -1591,43 +1597,52 @@
             showAIStatus('🤔 Thinking...', 'loading');
 
             try {
-                const response = await fetch('/api/openai', {
+                const response = await fetch('/api/openai', {  // Vercel proxy endpoint
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: fullMessage })
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
+                            },
+                            { role: 'user', content: message }
+                        ],
+                        max_tokens: 150,
+                        temperature: 0.7
+                    })
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `API Error ${response.status}`);
                 }
 
                 const data = await response.json();
-                const aiReply = data.reply || 'Sorry, no response from AI.';
+                const aiReply = data.choices[0].message.content;
                 addMessageToChat(aiReply, 'ai');
-                showAIStatus('✅ Ready for more!', 'success');
+                showAIStatus('✅ Sent!', 'success');
             } catch (error) {
                 console.error('AI Error:', error);
-                const errorMsg = error.message.includes('404') ? '❌ AI server not found—check deployment.' :
-                                 error.message.includes('500') ? '❌ Server hiccup—retry!' :
-                                 '❌ Oops! Try again.';
+                const errorMsg = error.message.includes('not configured') ? '❌ API key not set on server. Contact admin.' :
+                                 error.message.includes('401') ? '❌ Invalid API key—check server config.' :
+                                 error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
+                                 '❌ Connection issue. Check internet or try again.';
                 showAIStatus(errorMsg, 'error');
-                addMessageToChat(`Error: ${errorMsg}. Let's chat about something else?`, 'ai');
-            } finally {
-                // FIXED: Ensure refocus even on error
-                setTimeout(() => input.focus(), 100);
+                addMessageToChat(`Sorry! ${errorMsg} <button class="retry-btn" onclick="retryLastMessage()">Retry</button>`, 'ai');
             }
         }
 
-        // UPDATED: Send message for floating chat (with grade context + refocus fix)
+        // UPDATED: Send message for floating chat (proxies through Vercel)
         async function sendMessageToFloatingAI() {
             const input = document.getElementById('floatingChatInput');
             const message = input.value.trim();
             if (!message) return;
 
-            // NEW: Add grade context for personalized responses
-            const gradeContext = `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join(', ') || 'None yet'}.`;
-            const fullMessage = `${gradeContext} User: ${message}`;
+            lastUserMessage = message; // For retry
 
             // Add user message to floating chat
             addMessageToFloatingChat(message, 'user');
@@ -1635,31 +1650,42 @@
             showFloatingAIStatus('🤔 Thinking...', 'loading');
 
             try {
-                const response = await fetch('/api/openai', {
+                const response = await fetch('/api/openai', {  // Vercel proxy endpoint
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: fullMessage })
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
+                            },
+                            { role: 'user', content: message }
+                        ],
+                        max_tokens: 150,
+                        temperature: 0.7
+                    })
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `API Error ${response.status}`);
                 }
 
                 const data = await response.json();
-                const aiReply = data.reply || 'Sorry, no response from AI.';
+                const aiReply = data.choices[0].message.content;
                 addMessageToFloatingChat(aiReply, 'ai');
-                showFloatingAIStatus('✅ Ready for more!', 'success');
+                showFloatingAIStatus('✅ Sent!', 'success');
             } catch (error) {
-                console.error('Floating AI Error:', error);
-                const errorMsg = error.message.includes('404') ? '❌ AI server not found—check deployment.' :
-                                 error.message.includes('500') ? '❌ Server hiccup—retry!' :
-                                 '❌ Oops! Try again.';
+                console.error('AI Error:', error);
+                const errorMsg = error.message.includes('not configured') ? '❌ API key not set on server. Contact admin.' :
+                                 error.message.includes('401') ? '❌ Invalid API key—check server config.' :
+                                 error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
+                                 '❌ Connection issue. Check internet or try again.';
                 showFloatingAIStatus(errorMsg, 'error');
-                addMessageToFloatingChat(`Error: ${errorMsg}. Let's chat about something else?`, 'ai');
-            } finally {
-                // FIXED: Ensure refocus even on error
-                setTimeout(() => input.focus(), 100);
+                addMessageToFloatingChat(`Sorry! ${errorMsg} <button class="retry-btn" onclick="retryLastMessage()">Retry</button>`, 'ai');
             }
         }
 
@@ -1667,7 +1693,7 @@
             const messagesDiv = document.getElementById('aiChatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `ai-message ${sender}`;
-            messageDiv.textContent = message;
+            messageDiv.innerHTML = message;  // Use innerHTML for retry button
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
@@ -1677,7 +1703,7 @@
             const messagesDiv = document.getElementById('floatingChatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `ai-message ${sender}`;
-            messageDiv.textContent = message;
+            messageDiv.innerHTML = message;  // Use innerHTML for retry button
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
@@ -1858,21 +1884,16 @@
             dropdown.classList.remove('active');
         }
 
-        // UPDATED: Toggle between sign up/login form (now handles confirm password visibility)
+        // Toggle between sign up/login form
         function toggleAuthForm() {
             const submitBtn = document.getElementById('authSubmit');
             const toggleBtn = document.getElementById('toggleAuth');
-            const confirmPassInput = document.getElementById('confirmPassword');
             if (submitBtn.textContent === 'Sign Up') {
                 submitBtn.textContent = 'Login';
                 toggleBtn.textContent = 'Or Sign Up Instead';
-                confirmPassInput.style.display = 'none';
-                confirmPassInput.removeAttribute('required');
             } else {
                 submitBtn.textContent = 'Sign Up';
                 toggleBtn.textContent = 'Or Login Instead';
-                confirmPassInput.style.display = 'block';
-                confirmPassInput.setAttribute('required', 'required');
             }
         }
 
@@ -2069,21 +2090,13 @@
             }
         }
 
-        // UPDATED: Function to calculate averages (now supports weights)
+        // Function to calculate averages
         function calculateAverages() {
             try {
                 const rows = document.querySelectorAll('#gradeTable tbody tr');
                 if (rows.length === 0) {
                     showError('Please add at least one subject.');
                     return;
-                }
-
-                // NEW: Load weights (defaults to equal if not set)
-                const weightsStr = localStorage.getItem('gradeWeights') || '12.5,12.5,12.5,25,12.5,12.5,12.5,25';
-                const weights = weightsStr.split(',').map(w => parseFloat(w.trim())).filter(w => !isNaN(w));
-                if (weights.length !== numScoreColumns) {
-                    console.warn('Invalid weights; using equal distribution.');
-                    weights.length = 0; // Will use equal below
                 }
 
                 const columnTotals = new Array(numScoreColumns).fill(0);
@@ -2123,19 +2136,16 @@
                         }
                         if (score > 100) score = 100; // Clamp to 100
 
-                        // NEW: Apply weight if set, else equal (1/numValid)
-                        const weight = weights.length > 0 ? (weights[i] / 100) : (1 / numScoreColumns);
-                        subjectTotal += score * weight;
+                        subjectTotal += score;
                         subjectValid++;
-                        grandTotal += score * weight;
+                        grandTotal += score;
                         grandCount++;
 
                         columnTotals[i] += score;
                         columnCounts[i]++;
                     }
 
-                    // If no weights, use simple average
-                    const subjectAvg = subjectValid > 0 ? (subjectTotal / (weights.length > 0 ? 1 : subjectValid)).toFixed(2) : '0.00';
+                    const subjectAvg = subjectValid > 0 ? (subjectTotal / subjectValid).toFixed(2) : '0.00';
                     if (avgCell) avgCell.textContent = subjectAvg;
                     lastSubjectAvgs.push({ name: subjectInput.value.trim(), avg: parseFloat(subjectAvg) });
                 }
@@ -2152,7 +2162,7 @@
                     if (el) el.textContent = colAvg;
                 }
 
-                const overallAvg = grandCount > 0 ? (grandTotal / (weights.length > 0 ? 1 : grandCount)).toFixed(2) : '0.00';
+                const overallAvg = grandCount > 0 ? (grandTotal / grandCount).toFixed(2) : '0.00';
                 lastOverallAvg = overallAvg;
                 const overallEl = document.getElementById('overallAverage');
                 if (overallEl) overallEl.textContent = overallAvg + '%';
@@ -2387,13 +2397,6 @@
             const subject = document.getElementById('contactSubject').value.trim();
             const message = document.getElementById('contactMessage').value.trim();
 
-            // UPDATED: Basic email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                alert('Please enter a valid email address.');
-                return;
-            }
-
             if (!name || !email || !subject || !message) {
                 alert('Please fill in all fields.');
                 return;
@@ -2430,17 +2433,6 @@
                 console.error('Main EmailJS Error:', error);
                 alert('Failed to send message. Please try again or email us directly.');
             });
-        }
-
-        // NEW: Save weights function
-        function saveWeights() {
-            const weightsStr = document.getElementById('weightsInput').value.trim();
-            if (!weightsStr) {
-                alert('Enter comma-separated weights (e.g., 10,10,10,20,...).');
-                return;
-            }
-            localStorage.setItem('gradeWeights', weightsStr);
-            alert('Weights saved! Recalculate averages to apply.');
         }
 
         // FIXED: Show section (handles all toggles + SEO meta updates) - Closes mobile nav
@@ -2522,10 +2514,6 @@
             document.getElementById('currentThreshold').textContent = threshold;
             currentThreshold = parseInt(threshold);
             
-            // NEW: Load weights
-            const weightsStr = localStorage.getItem('gradeWeights') || '12.5,12.5,12.5,25,12.5,12.5,12.5,25';
-            document.getElementById('weightsInput').value = weightsStr;
-            
             // Default subjects
             const defaults = localStorage.getItem('defaultSubjects') || 'Mathematics,English,Science,History';
             document.getElementById('defaultSubjectsInput').value = defaults;
@@ -2599,13 +2587,8 @@
             // FIXED: Force close mobile nav on load/refresh
             closeMobileNav();
 
-            // UPDATED: Initialize EmailJS with check
-            if (typeof emailjs !== 'undefined') {
-                emailjs.init('mMoFbLBQtA226NQY_');
-                console.log('EmailJS initialized');
-            } else {
-                console.warn('EmailJS not loaded - check CDN link');
-            }
+            // Initialize EmailJS
+            emailjs.init('mMoFbLBQtA226NQY_');
 
             // Initialize Firebase Auth (now calls updateAuthUI immediately)
             initAuth();
@@ -2621,21 +2604,13 @@
                 }
             });
 
-            // UPDATED: Auth form submit (now with password confirmation)
+            // Auth form submit
             document.getElementById('authForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const email = document.getElementById('authEmail').value;
                 const password = document.getElementById('authPassword').value;
-                const confirmPass = document.getElementById('confirmPassword').value;
-                const name = document.getElementById('signupName').value || email.split('@')[0];
+                const name = document.getElementById('userName').value || email.split('@')[0];
                 const submitBtn = document.getElementById('authSubmit');
-                
-                // NEW: Validate password match on sign-up
-                if (submitBtn.textContent === 'Sign Up' && password !== confirmPass) {
-                    document.getElementById('authError').textContent = 'Passwords do not match!';
-                    return;
-                }
-                
                 if (submitBtn.textContent === 'Sign Up') {
                     signUpWithEmail(email, password, name);
                 } else {
