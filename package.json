@@ -1,5 +1,5 @@
 {
-  "name": "grade-calculator-api",
+  "name": "grade-calculator",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
