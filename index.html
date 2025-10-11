@@ -1228,6 +1228,17 @@
                     <button onclick="applyThreshold()" class="small-btn">Apply</button>
                 </div>
                 
+                <!-- NEW: GPA Toggle -->
+                <div class="setting-card">
+                    <h3>📊 GPA Mode</h3>
+                    <p>Switch between percentage (%) and GPA (4.0 scale) for calculations.</p>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="gpaToggle" onchange="toggleGPAScale()">
+                        <span class="toggle-slider"></span>
+                        Enable GPA (4.0)
+                    </label>
+                </div>
+                
                 <div class="setting-card">
                     <h3>📚 Default Subjects</h3>
                     <p>Comma-separated list (loads on page refresh).</p>
@@ -1541,6 +1552,7 @@
         let lastOverallAvg = '0.00'; // For stats
         let lastSubjectAvgs = []; // For stats
         let currentUser = null; // Firebase user
+        let isGPAMode = false; // NEW: GPA toggle state
 
         // REMOVED: Hardcoded OpenAI key - now handled via Vercel proxy (/api/openai)
         // Ensure you have /api/openai.js deployed on Vercel with OPENAI_API_KEY env var
@@ -1596,6 +1608,11 @@
             input.value = '';
             showAIStatus('🤔 Thinking...', 'loading');
 
+            // NEW: Pass grades context for smarter replies
+            const context = lastSubjectAvgs.length > 0 ? 
+                `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join('; ')}.` : 
+                'No grades calculated yet.';
+
             try {
                 const response = await fetch('/api/openai', {  // Vercel proxy endpoint
                     method: 'POST',
@@ -1609,7 +1626,7 @@
                                 role: 'system',
                                 content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
                             },
-                            { role: 'user', content: message }
+                            { role: 'user', content: `${context} User query: ${message}` }
                         ],
                         max_tokens: 150,
                         temperature: 0.7
@@ -1617,6 +1634,9 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('AI service not available—check deployment.');
+                    }
                     const errorData = await response.json();
                     throw new Error(errorData.error || `API Error ${response.status}`);
                 }
@@ -1631,8 +1651,9 @@
                                  error.message.includes('401') ? '❌ Invalid API key—check server config.' :
                                  error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
                                  '❌ Connection issue. Check internet or try again.';
+                const fallbackMsg = 'AI is taking a break. Try: Focus on weak subjects for quick wins!';
                 showAIStatus(errorMsg, 'error');
-                addMessageToChat(`Sorry! ${errorMsg} <button class="retry-btn" onclick="retryLastMessage()">Retry</button>`, 'ai');
+                addMessageToChat(`Sorry! ${errorMsg}. ${fallbackMsg} <button class="retry-btn" onclick="retryLastMessage()">Retry</button>`, 'ai');
             }
         }
 
@@ -1649,6 +1670,11 @@
             input.value = '';
             showFloatingAIStatus('🤔 Thinking...', 'loading');
 
+            // NEW: Pass grades context for smarter replies
+            const context = lastSubjectAvgs.length > 0 ? 
+                `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join('; ')}.` : 
+                'No grades calculated yet.';
+
             try {
                 const response = await fetch('/api/openai', {  // Vercel proxy endpoint
                     method: 'POST',
@@ -1662,7 +1688,7 @@
                                 role: 'system',
                                 content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
                             },
-                            { role: 'user', content: message }
+                            { role: 'user', content: `${context} User query: ${message}` }
                         ],
                         max_tokens: 150,
                         temperature: 0.7
@@ -1670,6 +1696,9 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('AI service not available—check deployment.');
+                    }
                     const errorData = await response.json();
                     throw new Error(errorData.error || `API Error ${response.status}`);
                 }
@@ -1684,8 +1713,9 @@
                                  error.message.includes('401') ? '❌ Invalid API key—check server config.' :
                                  error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
                                  '❌ Connection issue. Check internet or try again.';
+                const fallbackMsg = 'AI is taking a break. Try: Focus on weak subjects for quick wins!';
                 showFloatingAIStatus(errorMsg, 'error');
-                addMessageToFloatingChat(`Sorry! ${errorMsg} <button class="retry-btn" onclick="retryLastMessage()">Retry</button>`, 'ai');
+                addMessageToFloatingChat(`Sorry! ${errorMsg}. ${fallbackMsg} <button class="retry-btn" onclick="retryLastMessage()">Retry</button>`, 'ai');
             }
         }
 
@@ -1882,6 +1912,8 @@
             }
             // Ensure dropdown is hidden after update (prevents flash on refresh)
             dropdown.classList.remove('active');
+            // FIXED: Close mobile nav after UI update
+            closeMobileNav();
         }
 
         // Toggle between sign up/login form
@@ -2065,7 +2097,7 @@
                 // Add title, periods note, and overall avg
                 doc.setFontSize(16);
                 doc.text('Grade Matrix Report', 14, 10);
-                const periodStr = activeColumns.length > 0 ? ` (Periods: ${activeColumns.map(i => columnNames[i]).join(', ')})` : '';
+                const periodStr = activeColumns.length > 0 ? ` (Periods: ${activeColumns.map(i => columnNames[i].substring(0, 6)).join(', ')})` : ''; // FIXED: Truncate for filename
                 doc.setFontSize(10);
                 doc.text(`Filtered to entered data${periodStr}`, 14, 20);
                 doc.setFontSize(12);
@@ -2076,10 +2108,10 @@
                 doc.setFontSize(8);
                 doc.text(`Generated: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
 
-                // Filename with periods
+                // Filename with periods (truncated)
                 const includeDate = localStorage.getItem('dateInExport') !== 'false';
                 const dateStr = includeDate ? `-${new Date().toISOString().split('T')[0]}` : '';
-                const periodStrFile = activeColumns.length > 0 ? ` - ${activeColumns.map(i => columnNames[i]).join(', ')}` : '';
+                const periodStrFile = activeColumns.length > 0 ? ` - ${activeColumns.map(i => columnNames[i].substring(0, 6)).join(',')}` : ''; // FIXED: Truncate
                 const filename = `grade-matrix${periodStrFile}${dateStr}.pdf`;
 
                 // Download
@@ -2088,6 +2120,12 @@
                 console.error('PDF Export Error:', err);
                 showError('PDF export failed. Check console or try smaller table.');
             }
+        }
+
+        // NEW: Toggle GPA mode
+        function toggleGPAScale() {
+            isGPAMode = document.getElementById('gpaToggle').checked;
+            localStorage.setItem('gpaMode', isGPAMode);
         }
 
         // Function to calculate averages
@@ -2185,11 +2223,16 @@
             }
         }
 
-        // Function to display result
+        // UPDATED: Function to display result (with GPA support)
         function displayResult(average) {
             const resultDiv = document.getElementById('result');
             const letter = getLetterGrade(average);
-            resultDiv.innerHTML = `<div class="result">Overall Average Grade: ${average}% (${letter})</div>`;
+            let displayText = `Overall Average Grade: ${average}% (${letter})`;
+            if (isGPAMode) {
+                const gpa = (parseFloat(average) / 25).toFixed(2); // Rough 4.0 mapping (90-100=A=4.0, etc.)
+                displayText += ` | GPA: ${gpa}/4.0 (GPA Mode)`;
+            }
+            resultDiv.innerHTML = `<div class="result">${displayText}</div>`;
         }
 
         // Function to show error
@@ -2360,6 +2403,7 @@
             }
         }
 
+        // UPDATED: Generate stats (with GPA support)
         function generateStats() {
             const statsGrid = document.getElementById('statsGrid');
             if (lastSubjectAvgs.length === 0) {
@@ -2369,6 +2413,11 @@
             const totalSubjects = lastSubjectAvgs.length;
             const bestSubject = lastSubjectAvgs.reduce((max, curr) => curr.avg > max.avg ? curr : max);
             const worstSubject = lastSubjectAvgs.reduce((min, curr) => curr.avg < min.avg ? curr : min);
+            let overallDisplay = `${lastOverallAvg}%`;
+            if (isGPAMode) {
+                const gpa = (parseFloat(lastOverallAvg) / 25).toFixed(2);
+                overallDisplay += ` (${gpa}/4.0 GPA)`;
+            }
             statsGrid.innerHTML = `
                 <div class="stat-item">
                     <div>Total Subjects</div>
@@ -2376,7 +2425,7 @@
                 </div>
                 <div class="stat-item">
                     <div>Overall Avg</div>
-                    <div class="stat-value">${lastOverallAvg}%</div>
+                    <div class="stat-value">${overallDisplay}</div>
                 </div>
                 <div class="stat-item">
                     <div>Best: ${bestSubject.name}</div>
@@ -2389,7 +2438,7 @@
             `;
         }
 
-        // Contact functions (updated with EmailJS + Auto-Reply)
+        // UPDATED: Contact functions (with fixed auto-reply)
         function submitContactForm(e) {
             e.preventDefault();
             const name = document.getElementById('contactName').value.trim();
@@ -2414,17 +2463,17 @@
             }).then((result) => {
                 console.log('Main EmailJS Success:', result.text);
 
-                // Send auto-reply to user (only if main email succeeds)
+                // FIXED: Send dedicated auto-reply to user (only if main succeeds)
                 console.log('Sending auto-reply...');
-                emailjs.send('service_t4jdpwc', 'template_awyrou5', {
-                    name: name,
-                    email: email,
-                    subject: `Re: ${subject}`,
-                    message: message
+                emailjs.send('service_t4jdpwc', 'template_awyrou5', {  // Dedicated auto-reply template
+                    to_name: name,
+                    to_email: email,
+                    reply_subject: `Re: ${subject} - Thanks for reaching out!`,
+                    reply_message: `Hi ${name}! We received your message about "${subject}". Our team will review it within 24-48 hours. In the meantime, check our Help section for quick tips. Best, Grade Calculator Team`
                 }).then((replyResult) => {
                     console.log('Auto-Reply Success:', replyResult.text);
                 }).catch((replyError) => {
-                    console.error('Auto-Reply Error (non-blocking):', replyError);
+                    console.warn('Auto-Reply failed (non-critical):', replyError);  // Downgraded to warn
                 });
 
                 alert('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
@@ -2514,6 +2563,10 @@
             document.getElementById('currentThreshold').textContent = threshold;
             currentThreshold = parseInt(threshold);
             
+            // NEW: GPA Mode
+            isGPAMode = localStorage.getItem('gpaMode') === 'true';
+            document.getElementById('gpaToggle').checked = isGPAMode;
+            
             // Default subjects
             const defaults = localStorage.getItem('defaultSubjects') || 'Mathematics,English,Science,History';
             document.getElementById('defaultSubjectsInput').value = defaults;
@@ -2530,21 +2583,21 @@
             localStorage.setItem('darkMode', isDark);
         }
 
-        // Update low score threshold
+        // UPDATED: Update low score threshold (with validation)
         function updateThreshold() {
             const newVal = parseInt(document.getElementById('thresholdInput').value);
-            if (newVal >= 0 && newVal <= 100) {
-                currentThreshold = newVal;
-                document.getElementById('currentThreshold').textContent = newVal;
-                localStorage.setItem('lowScoreThreshold', newVal);
-                // Re-apply to all inputs
-                document.querySelectorAll('#gradeTable input[type="number"]').forEach(input => {
-                    updateScoreColor(input);
-                });
-                clearError();
-            } else {
-                showError('Threshold must be 0-100.');
+            if (isNaN(newVal) || newVal < 0 || newVal > 100) {
+                showError('Threshold must be a number between 0-100.');
+                return;
             }
+            currentThreshold = newVal;
+            document.getElementById('currentThreshold').textContent = newVal;
+            localStorage.setItem('lowScoreThreshold', newVal);
+            // Re-apply to all inputs
+            document.querySelectorAll('#gradeTable input[type="number"]').forEach(input => {
+                updateScoreColor(input);
+            });
+            clearError();
         }
 
         function applyThreshold() {
