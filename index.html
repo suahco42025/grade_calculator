@@ -1085,7 +1085,66 @@
         body.dark-mode .qr-modal video {
             border-color: #5a6c7d;
         }
+        /* NEW: OCR Styles */
+#ocrFileInput {
+    display: none;
+}
+.ocr-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 300;
+    color: white;
+    flex-direction: column;
+}
+.ocr-loading.active {
+    display: flex;
+}
+.ocr-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.extracted-text {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.extracted-text h4 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+/* NEW: OCR Upload Button */
+#ocrUpload {
+    background-color: #9b59b6;
+    font-size: 16px;
+}
+#ocrUpload:hover {
+    background-color: #8e44ad;
+}
     </style>
+    <!-- NEW: Tesseract.js for OCR -->
+<script src="https://unpkg.com/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
 </head>
 <body>
     <!-- Fixed nav moved outside container -->
@@ -2924,3 +2983,4 @@
     </script>
 </body>
 </html>
+
