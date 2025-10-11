@@ -80,6 +80,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <!-- EmailJS for contact form -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <!-- NEW: QR Code Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script> <!-- For generating QRs -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script> <!-- For scanning QRs -->
     <!-- Firebase SDK -->
     <script type="module">
         // Import Firebase modules
@@ -682,6 +685,45 @@
         input[type="file"] {
             margin: 10px 0;
         }
+        /* NEW: QR Scan Modal Styling */
+        .qr-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .qr-modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+        .qr-modal video {
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .qr-status {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .qr-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
         /* Auth form styling */
         .auth-form {
             display: grid;
@@ -789,7 +831,7 @@
         .auth-section.active { display: block; }
         .profile-info { display: none; }
         .profile-info.active { display: block; }
-        /* NEW: AI Assistant styling */
+        /* NEW: Assistant styling */
         .ai-section {
             padding: 20px 0;
         }
@@ -867,7 +909,7 @@
             font-size: 14px;
             margin-top: 10px;
         }
-        /* UPDATED: Floating AI Chat Widget - REMOVED GRADIENT BACKGROUND, USE ONLY suahco4.png */
+        /* UPDATED: Floating Assistant Widget - REMOVED GRADIENT BACKGROUND, USE ONLY suahco4.png */
         .floating-chat-toggle {
             position: fixed;
             bottom: 20px;
@@ -1008,6 +1050,11 @@
             .floating-chat-header h4 {
                 font-size: 14px;
             }
+            /* NEW: QR Modal Mobile */
+            .qr-modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
         }
         /* Dark mode for floating chat */
         body.dark-mode .floating-chat-window {
@@ -1029,6 +1076,14 @@
         body.dark-mode .floating-chat-status {
             color: #a0a0a0;
             background: #3d566e;
+        }
+        /* NEW: Dark mode for QR modal */
+        body.dark-mode .qr-modal-content {
+            background-color: #34495e;
+            color: #ecf0f1;
+        }
+        body.dark-mode .qr-modal video {
+            border-color: #5a6c7d;
         }
     </style>
 </head>
@@ -1085,6 +1140,18 @@
         </div>
     </div>
 
+    <!-- NEW: QR Scan Modal -->
+    <div id="qrModal" class="qr-modal">
+        <div class="qr-modal-content">
+            <span class="qr-close" onclick="closeQRModal()">&times;</span>
+            <h3>📱 Scan QR to Load Session</h3>
+            <p>Point your camera at the QR code.</p>
+            <video id="qrVideo" autoplay playsinline></video>
+            <div id="qrStatus" class="qr-status">Loading camera...</div>
+            <button onclick="closeQRModal()" class="small-btn">Cancel</button>
+        </div>
+    </div>
+
     <div class="container">
         <!-- Wrapped: Grades Section -->
         <section id="grades-section" class="grades-section">
@@ -1136,7 +1203,7 @@
             <div id="error" class="error"></div>
         </section>
 
-        <!-- AI Assistant Section (now hidden by default, accessible via floating chat) -->
+        <!-- Assistant Section (now hidden by default, accessible via floating chat) -->
         <section id="ai-section" class="ai-section" style="display: none;">
             <h1>🤖 Assistant</h1>
             <div class="ai-content">
@@ -1319,8 +1386,10 @@
                     
                     <div class="profile-card">
                         <h3>💾 Saved Sessions</h3>
-                        <p>Save your current grades to load later.</p>
+                        <p>Save your current grades to load later. New: Generate QR codes for quick scanning!</p>
                         <button onclick="saveSession()" class="small-btn">Save Current Session</button>
+                        <!-- NEW: Scan Button -->
+                        <button onclick="startQRScan()" class="small-btn" style="background-color: #9b59b6; margin-left: 10px;">📱 Scan QR to Load Session</button>
                         <ul id="sessionList" class="session-list"></ul>
                     </div>
                     
@@ -1575,6 +1644,10 @@
         let currentUser = null; // Firebase user
         let isGPAMode = false; // NEW: GPA toggle state
 
+        // NEW: QR Scanning Variables
+        let videoStream = null;
+        let qrScanningInterval = null;
+
         // REMOVED: Hardcoded OpenAI key - now handled via Vercel proxy (/api/openai)
         // Ensure you have /api/openai.js deployed on Vercel with OPENAI_API_KEY env var
 
@@ -1813,6 +1886,109 @@
                 }
             }
         });
+
+        // NEW: QR Scan Functions
+        function startQRScan() {
+            const modal = document.getElementById('qrModal');
+            const status = document.getElementById('qrStatus');
+            modal.style.display = 'block';
+            status.textContent = 'Requesting camera access...';
+
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(stream => {
+                    videoStream = stream;
+                    const video = document.getElementById('qrVideo');
+                    video.srcObject = stream;
+                    video.play();
+                    status.textContent = 'Scanning for QR code...';
+                    startScanning(video);
+                })
+                .catch(err => {
+                    console.error('Camera Error:', err);
+                    status.textContent = 'Camera access denied. Please enable permissions.';
+                });
+        }
+
+        function startScanning(video) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            qrScanningInterval = setInterval(() => {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    if (code) {
+                        clearInterval(qrScanningInterval);
+                        handleQRScan(code.data);
+                    }
+                }
+            }, 500); // Scan every 500ms
+        }
+
+        function handleQRScan(data) {
+            try {
+                const session = JSON.parse(data);
+                if (session && session.data && session.timestamp) {
+                    if (confirm(`Load session from ${session.timestamp}? This will overwrite current data.`)) {
+                        // Load like manual session
+                        document.querySelector('#gradeTable tbody').innerHTML = '';
+                        session.data.forEach(item => {
+                            addSubjectRow(item.subject);
+                            const inputs = document.querySelectorAll('#gradeTable tbody tr:last-child input[type="number"]');
+                            item.scores.forEach((score, i) => {
+                                if (inputs[i]) inputs[i].value = score;
+                            });
+                        });
+                        setTimeout(() => {
+                            calculateAverages();
+                            document.querySelectorAll('#gradeTable input[type="number"]').forEach(updateScoreColor);
+                        }, 100);
+                        showSection('grades');
+                        alert('Session loaded from QR!');
+                    }
+                } else {
+                    throw new Error('Invalid QR data');
+                }
+            } catch (err) {
+                console.error('QR Parse Error:', err);
+                document.getElementById('qrStatus').textContent = 'Invalid QR code. Try again.';
+                // Restart scanning after 2s
+                setTimeout(() => startScanning(document.getElementById('qrVideo')), 2000);
+            }
+            closeQRModal();
+        }
+
+        function closeQRModal() {
+            const modal = document.getElementById('qrModal');
+            modal.style.display = 'none';
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            if (qrScanningInterval) {
+                clearInterval(qrScanningInterval);
+                qrScanningInterval = null;
+            }
+        }
+
+        // NEW: Generate QR for Session (called after save)
+        function generateQRForSession(session) {
+            const qrData = JSON.stringify(session);
+            const canvas = document.createElement('canvas');
+            QRCode.toCanvas(canvas, qrData, { width: 256 }, (err) => {
+                if (err) {
+                    alert('QR Generation Failed: ' + err);
+                    return;
+                }
+                const link = document.createElement('a');
+                link.download = `session-qr-${session.id}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                alert('QR code downloaded! Print or share it to scan later.');
+            });
+        }
 
         // JS Fallback for www redirect (uncomment if no custom domain)
         /*
@@ -2371,6 +2547,7 @@
             document.getElementById('navProfilePic').src = src;
         }
 
+        // UPDATED: Save Session (now generates QR)
         function saveSession() {
             const tableData = [];
             document.querySelectorAll('#gradeTable tbody tr').forEach(row => {
@@ -2392,7 +2569,8 @@
             if (sessions.length > 5) sessions = sessions.slice(0, 5); // Limit to 5
             localStorage.setItem('savedSessions', JSON.stringify(sessions));
             loadSessions();
-            alert('Session saved!');
+            // NEW: Generate QR
+            generateQRForSession(session);
         }
 
         function loadSessions() {
@@ -2567,7 +2745,7 @@
                 document.querySelector('.accordion-content').classList.add('active');
             } else if (section === 'terms') {
                 const termsSec = document.getElementById('terms-section');
-                if (termsSec) termsSec.style.display = 'block';
+                if (termsSec) privacySec.style.display = 'block';
                 document.querySelectorAll('.accordion-content').forEach(content => content.classList.remove('active'));
                 document.querySelector('.accordion-content').classList.add('active');
             }
@@ -2737,6 +2915,11 @@
             loadSettings();
             toggleDownloadBtns(false);
             showSection('grades'); // This will also set initial SEO meta
+
+            // NEW: Close QR modal on outside click
+            document.getElementById('qrModal').addEventListener('click', function(e) {
+                if (e.target === this) closeQRModal();
+            });
         });
     </script>
 </body>
