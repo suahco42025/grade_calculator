@@ -1236,38 +1236,42 @@
     <button onclick="document.getElementById('extractedText').style.display='none'; clearError();" style="margin-top: 10px; padding: 5px 10px; font-size: 12px;">Close</button>
 </div>
             <table id="gradeTable">
-                <thead>
-                    <tr>
-                        <th class="subject-th">Subject</th>
-                        <th>1st Period</th>
-                        <th>2nd Period</th>
-                        <th>3rd Period</th>
-                        <th>Exam 1</th>
-                        <th>4th Period</th>
-                        <th>5th Period</th>
-                        <th>6th Period</th>
-                        <th>Final</th>
-                        <th>Subject Average</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Dynamic rows will be added here -->
-                </tbody>
-                <tfoot>
-                    <tr class="period-avg-row" id="periodAvgRow">
-                        <td><strong>Period Averages</strong></td>
-                        <td id="avg1">0.00</td>
-                        <td id="avg2">0.00</td>
-                        <td id="avg3">0.00</td>
-                        <td id="avgExam1">0.00</td>
-                        <td id="avg4">0.00</td>
-                        <td id="avg5">0.00</td>
-                        <td id="avg6">0.00</td>
-                        <td id="avgExam2">0.00</td>
-                        <td class="overall-average" id="overallAverage">0.00</td>
-                    </tr>
-                </tfoot>
-            </table>
+    <thead>
+        <tr>
+            <th class="subject-th">Subject</th>
+            <th class="sem1-th" data-tooltip="1st Semester">1st Period</th>
+            <th class="sem1-th" data-tooltip="1st Semester">2nd Period</th>
+            <th class="sem1-th" data-tooltip="1st Semester">3rd Period</th>
+            <th class="sem1-th" data-tooltip="1st Semester">1st Exam</th>
+            <th class="sem2-th" data-tooltip="2nd Semester">4th Period</th>
+            <th class="sem2-th" data-tooltip="2nd Semester">5th Period</th>
+            <th class="sem2-th" data-tooltip="2nd Semester">6th Period</th>
+            <th class="sem2-th" data-tooltip="2nd Semester">Final Exam</th>
+            <th class="sem-avg-th" data-tooltip="1st Semester Average">1st Sem Avg</th>
+            <th class="sem-avg-th" data-tooltip="2nd Semester Average">2nd Sem Avg</th>
+            <th class="final-avg" data-tooltip="Overall Final Average">Final Avg</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Dynamic rows will be added here -->
+    </tbody>
+    <tfoot>
+        <tr class="period-avg-row">
+            <td><strong>Semester Averages</strong></td>
+            <td id="avg1">0.00</td>
+            <td id="avg2">0.00</td>
+            <td id="avg3">0.00</td>
+            <td id="avgExam1">0.00</td>
+            <td id="avg4">0.00</td>
+            <td id="avg5">0.00</td>
+            <td id="avg6">0.00</td>
+            <td id="avgExam2">0.00</td>
+            <td class="sem1-avg" id="sem1OverallAvg">0.00</td>
+            <td class="sem2-avg" id="sem2OverallAvg">0.00</td>
+            <td class="final-avg" id="finalOverallAvg">0.00</td>
+        </tr>
+    </tfoot>
+</table>
             
             <div id="result"></div>
             <div id="error" class="error"></div>
@@ -3106,6 +3110,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </script>
 </body>
 </html>
+
 
 
 
