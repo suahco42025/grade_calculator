@@ -1216,19 +1216,17 @@
     </div>
 
     <div class="container">
-        <!-- Wrapped: Grades Section -->
-        <section id="grades-section" class="grades-section">
-            <div class="controls">
-                <button id="addSubject">Add Subject</button>
-                <button id="calculate">Calculate Averages</button>
-                <!-- Download buttons (hidden initially) -->
-                <div>
-                    <button id="downloadBtn" style="display: none; background-color: #f39c12;" onclick="downloadCSV()">Download CSV</button>
-                    <button id="pdfBtn" style="display: none; background-color: #9b59b6;" onclick="downloadPDF()">Download PDF</button>
-                    <button id="ocrUpload">📷 Upload Grade Photo</button>
-<input type="file" id="ocrFileInput" accept="image/*" onchange="handleOCRUpload(event)">
-                </div>
-            </div>
+        <div class="controls">
+    <button id="addSubject">Add Subject</button>
+    <button id="scanGradesBtn">📷 Scan Grades from Paper</button>
+    <button id="calculate">Calculate Averages</button>
+    <button id="resetSemesters">Reset Semesters</button>
+    <!-- Download buttons (hidden initially) -->
+    <div>
+        <button id="downloadBtn" style="display: none; background-color: #f39c12;" onclick="downloadCSV()">Download CSV</button>
+        <button id="pdfBtn" style="display: none; background-color: #9b59b6;" onclick="downloadPDF()">Download PDF</button>
+    </div>
+</div>
             <!-- NEW: Extracted Text Display (hidden by default) -->
 <div id="extractedText" class="extracted-text" style="display: none;">
     <h4>Extracted Text (Review & Edit Table Below):</h4>
