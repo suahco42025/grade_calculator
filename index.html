@@ -2628,16 +2628,16 @@ th:hover::after {
 
     // UPDATED: Display result (now shows semester breakdown)
     function displayResult(avgs) {
-        const resultDiv = document.getElementById('result');
-        const sem1Letter = getLetterGrade(avgs.sem1, isGPAMode);
-        const sem2Letter = getLetterGrade(avgs.sem2, isGPAMode);
-        const finalLetter = getLetterGrade(avgs.final, isGPAMode);
-        let displayText = `1st Sem: ${avgs.sem1} (${sem1Letter}) | 2nd Sem: ${avgs.sem2} (${sem2Letter}) | Final: ${avgs.final} (${finalLetter})`;
-        if (isGPAMode) {
-            displayText += ' (GPA Mode)';
-        }
-        resultDiv.innerHTML = `<div class="result">${displayText}</div>`;
+    const resultDiv = document.getElementById('result');
+    const sem1Letter = getLetterGrade(avgs.sem1, isGPAMode);
+    const sem2Letter = getLetterGrade(avgs.sem2, isGPAMode);
+    const finalLetter = getLetterGrade(avgs.final, isGPAMode);
+    let displayText = `Periods: ${columnNames.map((name, i) => `${name}: ${document.getElementById(columnIdMap[i]).textContent.split(' ')[0]}`).join(' | ')} | 1st Sem: ${avgs.sem1} (${sem1Letter}) | 2nd Sem: ${avgs.sem2} (${sem2Letter}) | Final: ${avgs.final} (${finalLetter})`;
+    if (isGPAMode) {
+        displayText += ' (GPA Mode)';
     }
+    resultDiv.innerHTML = `<div class="result">${displayText}</div>`;
+}
 
     // Function to show error
     function showError(message) {
@@ -3118,5 +3118,6 @@ th:hover::after {
 </script>
 </body>
 </html>
+
 
 
