@@ -83,6 +83,8 @@
     <!-- NEW: QR Code Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script> <!-- For generating QRs -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script> <!-- For scanning QRs -->
+    <!-- NEW: Tesseract.js for OCR -->
+    <script src="https://unpkg.com/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
         // Import Firebase modules
@@ -1195,6 +1197,9 @@ th:hover::after {
         </div>
     </div>
 
+    <!-- NEW: Hidden file input for OCR -->
+    <input type="file" id="ocrFileInput" accept="image/*" style="display: none;" onchange="handleOCRFileUpload(event)">
+
     <div class="container">
         <!-- Wrapped: Grades Section -->
         <section id="grades-section" class="grades-section">
@@ -1335,7 +1340,7 @@ th:hover::after {
                     <h2 onclick="toggleAccordion(this)">📧 Contact & More</h2>
                     <div class="accordion-content">
                         <p>Questions? Use the <a href="#" onclick="showSection('contact')">Contact Form</a> or email <a href="mailto:mr.suah19@gmail.com">mr.suah19@gmail.com</a>.</p>
-                        <p><em>Last updated:</em> October 5, 2025</p>
+                        <p><em>Last updated:</em> October 13, 2025</p>
                     </div>
                 </div>
             </div>
@@ -1518,7 +1523,7 @@ th:hover::after {
                 <div class="help-card">
                     <h2 onclick="toggleAccordion(this)">📜 Introduction</h2>
                     <div class="accordion-content active">
-                        <p>Effective Date: October 5, 2025</p>
+                        <p>Effective Date: October 13, 2025</p>
                         <p>Welcome to Grade Calculator ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your data when you use our web application (the "App"). By using the App, you consent to these practices.</p>
                     </div>
                 </div>
@@ -1606,7 +1611,7 @@ th:hover::after {
                 <div class="help-card">
                     <h2 onclick="toggleAccordion(this)">📜 Introduction</h2>
                     <div class="accordion-content active">
-                        <p>Effective Date: October 5, 2025</p>
+                        <p>Effective Date: October 13, 2025</p>
                         <p>Welcome to Grade Calculator ("we," "our," or "us"). These Terms of Service ("Terms") govern your use of our web application (the "App"). By accessing or using the App, you agree to be bound by these Terms. If you do not agree, please do not use the App.</p>
                     </div>
                 </div>
@@ -1730,6 +1735,18 @@ th:hover::after {
             if (numAvg >= 60) return 'D';
             return 'F';
         }
+    }
+
+    // UPDATED: GPA mapping (bucketed for accuracy)
+    function scaleToGPA(score) {
+        const letter = getLetterGrade(score, false); // % to letter
+        const gpaMap = { 
+            'A': 4.0, 'A-': 3.7, 
+            'B+': 3.3, 'B': 3.0, 'B-': 2.7, 
+            'C+': 2.3, 'C': 2.0, 'C-': 1.7, 
+            'D': 1.0, 'F': 0.0 
+        };
+        return gpaMap[letter] || 0.0;
     }
 
     // UPDATED: Retry last message (for AI errors) - now handles both chat types
@@ -2008,7 +2025,11 @@ th:hover::after {
                         document.querySelectorAll('#gradeTable input[type="number"]').forEach(updateScoreColor);
                     }, 100);
                     showSection('grades');
+                    closeQRModal();
                     alert('Session loaded from QR!');
+                } else {
+                    // If not confirmed, restart scanning
+                    startScanning(document.getElementById('qrVideo'));
                 }
             } else {
                 throw new Error('Invalid QR data');
@@ -2016,10 +2037,10 @@ th:hover::after {
         } catch (err) {
             console.error('QR Parse Error:', err);
             document.getElementById('qrStatus').textContent = 'Invalid QR code. Try again.';
-            // Restart scanning after 2s
+            // Restart scanning after 2s without closing modal
             setTimeout(() => startScanning(document.getElementById('qrVideo')), 2000);
         }
-        closeQRModal();
+        // closeQRModal() moved to success path only
     }
 
     function closeQRModal() {
@@ -2052,8 +2073,50 @@ th:hover::after {
         });
     }
 
-    // NEW: OCR Functions (from previous)
-    // ... (keep all OCR-related functions like startOCRScan, handleOCRFileUpload, addParsedGrades, etc. - assuming they are already in your file)
+    // NEW: OCR Functions
+    async function handleOCRFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const status = document.getElementById('qrStatus'); // Reuse for OCR feedback
+        status.textContent = 'Processing image with OCR...';
+
+        try {
+            const { createWorker } = Tesseract;
+            const worker = await createWorker('eng');
+            const { data: { text } } = await worker.recognize(file);
+            await worker.terminate();
+
+            // Simple parsing: Look for lines like "Math 85 90 ..." or numbers
+            const lines = text.split('\n').filter(line => line.trim());
+            addParsedGrades(lines);
+            status.textContent = 'OCR complete! Grades added. Review and calculate.';
+            alert('Grades parsed from image! Check table.');
+        } catch (err) {
+            console.error('OCR Error:', err);
+            status.textContent = 'OCR failed. Try a clearer image.';
+        }
+        event.target.value = ''; // Reset input
+    }
+
+    function addParsedGrades(lines) {
+        // Basic regex to extract subject and scores (customize as needed)
+        lines.forEach(line => {
+            const match = line.match(/^(\w+.*?)(?:\s+(\d+(?:\.\d+)?))(?:\s+(\d+(?:\.\d+)?)){0,7}$/i);
+            if (match) {
+                const subject = match[1].trim();
+                const scores = match.slice(2).map(s => parseFloat(s)).filter(s => !isNaN(s));
+                if (scores.length > 0) {
+                    addSubjectRow(subject);
+                    const inputs = document.querySelectorAll('#gradeTable tbody tr:last-child input[type="number"]');
+                    scores.slice(0, inputs.length).forEach((score, i) => {
+                        inputs[i].value = score;
+                        updateScoreColor(inputs[i]);
+                    });
+                }
+            }
+        });
+    }
 
     // JS Fallback for www redirect (uncomment if no custom domain)
     /*
@@ -2432,7 +2495,8 @@ th:hover::after {
                 return;
             }
 
-            const scale = isGPAMode ? (score) => Math.min(4.0, score / 25) : (score) => score;
+            // UPDATED: Scale function with bucketed GPA
+            const scale = (score) => isGPAMode ? scaleToGPA(score) : score;
 
             // Reset all avgs
             ['avg1','avg2','avg3','avgExam1','avg4','avg5','avg6','avgExam2','sem1OverallAvg','sem2OverallAvg','finalOverallAvg'].forEach(id => {
@@ -2543,6 +2607,7 @@ th:hover::after {
             // Track active columns (all 8 now)
             activeColumns = Array.from({length: 8}, (_, i) => i);
 
+            lastOverallAvg = finalOverall;
             displayResult({ sem1: sem1Overall, sem2: sem2Overall, final: finalOverall });
             generateStats();
             clearError();
@@ -2721,7 +2786,7 @@ th:hover::after {
                 });
             });
             // NEW: Auto-recalculate after DOM update
-            setTimeout(() => calculateAverages(), 100);
+            setTimeout(() => calculateAverages(), 200);
             showSection('grades');
             alert('Session loaded!');
         }
@@ -2748,7 +2813,7 @@ th:hover::after {
         const worstSubject = lastSubjectAvgs.reduce((min, curr) => curr.final < min.final ? curr : min);
         let overallDisplay = `${lastOverallAvg}`;
         if (isGPAMode) {
-            const gpa = (parseFloat(lastOverallAvg) / 25).toFixed(2);
+            const gpa = (parseFloat(lastOverallAvg)).toFixed(2);
             overallDisplay += ` (${gpa}/4.0 GPA)`;
         }
         statsGrid.innerHTML = `
@@ -2996,6 +3061,11 @@ th:hover::after {
         document.getElementById('calculate').addEventListener('click', calculateAverages);
         document.getElementById('resetSemesters').addEventListener('click', resetSemesters); // NEW
         
+        // NEW: OCR Scan button
+        document.getElementById('scanGradesBtn').addEventListener('click', () => {
+            document.getElementById('ocrFileInput').click();
+        });
+        
         // Event delegation for remove buttons (dynamic)
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('remove-btn')) {
@@ -3040,9 +3110,3 @@ th:hover::after {
 </script>
 </body>
 </html>
-
-
-
-
-
-
