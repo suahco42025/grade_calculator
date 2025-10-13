@@ -2487,136 +2487,144 @@ th:hover::after {
     }
 
     // UPDATED: Function to calculate averages (now with semester logic)
-    function calculateAverages() {
-        try {
-            const rows = document.querySelectorAll('#gradeTable tbody tr');
-            if (rows.length === 0) {
-                showError('Please add at least one subject.');
-                return;
+    
+
+                function calculateAverages() {
+    try {
+        const rows = document.querySelectorAll('#gradeTable tbody tr');
+        if (rows.length === 0) {
+            showError('Please add at least one subject.');
+            return;
+        }
+
+        const scale = isGPAMode ? (score) => Math.min(4.0, score / 25) : (score) => score;
+
+        // Reset all avgs (periods + semesters)
+        columnIdMap.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '0.00';
+        });
+        ['sem1OverallAvg', 'sem2OverallAvg', 'finalOverallAvg'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '0.00';
+        });
+
+        const columnTotals = new Array(numScoreColumns).fill(0);
+        const columnCounts = new Array(numScoreColumns).fill(0);
+        let sem1Total = 0, sem1Count = 0, sem2Total = 0, sem2Count = 0;
+        let grandTotal = 0, grandCount = 0;
+        let invalidSubjects = [];
+        lastSubjectAvgs = [];
+
+        // Per-subject calculations
+        for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            const subjectInput = row.querySelector('input[type="text"]');
+            const scoreInputs = row.querySelectorAll('input[type="number"]');
+            const sem1AvgCell = row.querySelector('.sem1-avg');
+            const sem2AvgCell = row.querySelector('.sem2-avg');
+            const finalAvgCell = row.querySelector('.final-avg');
+
+            if (!subjectInput || subjectInput.value.trim() === '') {
+                invalidSubjects.push(r + 1);
+                continue;
             }
 
-            // UPDATED: Scale function with bucketed GPA
-            const scale = (score) => isGPAMode ? scaleToGPA(score) : score;
+            let sem1TotalRow = 0, sem1Valid = 0;
+            let sem2TotalRow = 0, sem2Valid = 0;
 
-            // Reset all avgs
-            ['avg1','avg2','avg3','avgExam1','avg4','avg5','avg6','avgExam2','sem1OverallAvg','sem2OverallAvg','finalOverallAvg'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = '0.00';
-            });
-
-            let sem1Total = 0, sem1Count = 0, sem2Total = 0, sem2Count = 0;
-            let grandTotal = 0, grandCount = 0;
-            let invalidSubjects = [];
-            lastSubjectAvgs = [];
-
-            // Per-subject calculations
-            for (let r = 0; r < rows.length; r++) {
-                const row = rows[r];
-                const subjectInput = row.querySelector('input[type="text"]');
-                const scoreInputs = row.querySelectorAll('input[type="number"]');
-                const sem1AvgCell = row.querySelector('.sem1-avg');
-                const sem2AvgCell = row.querySelector('.sem2-avg');
-                const finalAvgCell = row.querySelector('.final-avg');
-
-                if (!subjectInput || subjectInput.value.trim() === '') {
-                    invalidSubjects.push(r + 1);
-                    continue;
+            // Loop through all 8 score columns
+            for (let i = 0; i < numScoreColumns; i++) {
+                const input = scoreInputs[i];
+                if (!input.value || input.value.trim() === '') continue;
+                let score = parseFloat(input.value);
+                if (isNaN(score) || score < 0 || score > 100) {
+                    showError('Scores must be numbers between 0 and 100.');
+                    return;
                 }
+                score = Math.min(100, Math.max(0, score));
+                const scaled = scale(score);
+                grandTotal += scaled;
+                grandCount++;
 
-                let sem1TotalRow = 0, sem1Valid = 0;
-                let sem2TotalRow = 0, sem2Valid = 0;
+                // Add to column total for period avg
+                columnTotals[i] += scaled;
+                columnCounts[i]++;
 
-                // 1st Semester (indices 0-3)
-                for (let i = 0; i < 4; i++) {
-                    const input = scoreInputs[i];
-                    if (!input.value || input.value.trim() === '') continue;
-                    let score = parseFloat(input.value);
-                    if (isNaN(score) || score < 0 || score > 100) {
-                        showError('Scores must be numbers between 0 and 100.');
-                        return;
-                    }
-                    score = Math.min(100, Math.max(0, score));
-                    const scaled = scale(score);
+                // Add to semester totals
+                if (i < 4) { // 1st Semester (0-3)
                     sem1TotalRow += scaled;
                     sem1Valid++;
-                    grandTotal += scaled;
-                    grandCount++;
-                    // Period totals
-                    if (i < 3) { // Periods 1-3
+                    if (i < 3) { // Periods 1-3 for overall sem count
                         sem1Total += scaled;
                         sem1Count++;
                     }
-                }
-
-                // 2nd Semester (indices 4-7)
-                for (let i = 4; i < 8; i++) {
-                    const input = scoreInputs[i];
-                    if (!input.value || input.value.trim() === '') continue;
-                    let score = parseFloat(input.value);
-                    if (isNaN(score) || score < 0 || score > 100) {
-                        showError('Scores must be numbers between 0 and 100.');
-                        return;
-                    }
-                    score = Math.min(100, Math.max(0, score));
-                    const scaled = scale(score);
+                } else { // 2nd Semester (4-7)
                     sem2TotalRow += scaled;
                     sem2Valid++;
-                    grandTotal += scaled;
-                    grandCount++;
-                    if (i > 4) { // Periods 4-6
+                    if (i > 4) { // Periods 4-6 for overall sem count
                         sem2Total += scaled;
                         sem2Count++;
                     }
                 }
-
-                // Subject semester avgs
-                const sem1Avg = sem1Valid > 0 ? (sem1TotalRow / sem1Valid).toFixed(2) : '0.00';
-                const sem2Avg = sem2Valid > 0 ? (sem2TotalRow / sem2Valid).toFixed(2) : '0.00';
-                const finalAvg = (sem1Valid + sem2Valid > 0) ? ((sem1TotalRow + sem2TotalRow) / (sem1Valid + sem2Valid)).toFixed(2) : '0.00';
-
-                const sem1Letter = getLetterGrade(sem1Avg, isGPAMode);
-                const sem2Letter = getLetterGrade(sem2Avg, isGPAMode);
-                const finalLetter = getLetterGrade(finalAvg, isGPAMode);
-
-                if (sem1AvgCell) sem1AvgCell.innerHTML = `${sem1Avg} <small>(${sem1Letter})</small>`;
-                if (sem2AvgCell) sem2AvgCell.innerHTML = `${sem2Avg} <small>(${sem2Letter})</small>`;
-                if (finalAvgCell) finalAvgCell.innerHTML = `${finalAvg} <small>(${finalLetter})</small>`;
-
-                lastSubjectAvgs.push({ 
-                    name: subjectInput.value.trim(), 
-                    sem1: parseFloat(sem1Avg), 
-                    sem2: parseFloat(sem2Avg), 
-                    final: parseFloat(finalAvg) 
-                });
             }
 
-            if (invalidSubjects.length > 0) {
-                showError(`Please name subjects in rows: ${invalidSubjects.join(', ')}`);
-                return;
-            }
+            // Subject semester avgs
+            const sem1Avg = sem1Valid > 0 ? (sem1TotalRow / sem1Valid).toFixed(2) : '0.00';
+            const sem2Avg = sem2Valid > 0 ? (sem2TotalRow / sem2Valid).toFixed(2) : '0.00';
+            const finalAvg = (sem1Valid + sem2Valid > 0) ? ((sem1TotalRow + sem2TotalRow) / (sem1Valid + sem2Valid)).toFixed(2) : '0.00';
 
-            // Footer: Semester overall avgs
-            const sem1Overall = sem1Count > 0 ? (sem1Total / sem1Count).toFixed(2) : '0.00';
-            const sem2Overall = sem2Count > 0 ? (sem2Total / sem2Count).toFixed(2) : '0.00';
-            const finalOverall = grandCount > 0 ? (grandTotal / grandCount).toFixed(2) : '0.00';
+            const sem1Letter = getLetterGrade(sem1Avg, isGPAMode);
+            const sem2Letter = getLetterGrade(sem2Avg, isGPAMode);
+            const finalLetter = getLetterGrade(finalAvg, isGPAMode);
 
-            document.getElementById('sem1OverallAvg').innerHTML = `${sem1Overall} <small>(${getLetterGrade(sem1Overall, isGPAMode)})</small>`;
-            document.getElementById('sem2OverallAvg').innerHTML = `${sem2Overall} <small>(${getLetterGrade(sem2Overall, isGPAMode)})</small>`;
-            document.getElementById('finalOverallAvg').innerHTML = `${finalOverall} <small>(${getLetterGrade(finalOverall, isGPAMode)})</small>`;
+            if (sem1AvgCell) sem1AvgCell.innerHTML = `${sem1Avg} <small>(${sem1Letter})</small>`;
+            if (sem2AvgCell) sem2AvgCell.innerHTML = `${sem2Avg} <small>(${sem2Letter})</small>`;
+            if (finalAvgCell) finalAvgCell.innerHTML = `${finalAvg} <small>(${finalLetter})</small>`;
 
-            // Track active columns (all 8 now)
-            activeColumns = Array.from({length: 8}, (_, i) => i);
-
-            lastOverallAvg = finalOverall;
-            displayResult({ sem1: sem1Overall, sem2: sem2Overall, final: finalOverall });
-            generateStats();
-            clearError();
-            toggleDownloadBtns(true);
-        } catch (err) {
-            console.error(err);
-            showError('An unexpected error occurred. Check the console for details.');
+            lastSubjectAvgs.push({ 
+                name: subjectInput.value.trim(), 
+                sem1: parseFloat(sem1Avg), 
+                sem2: parseFloat(sem2Avg), 
+                final: parseFloat(finalAvg) 
+            });
         }
+
+        if (invalidSubjects.length > 0) {
+            showError(`Please name subjects in rows: ${invalidSubjects.join(', ')}`);
+            return;
+        }
+
+        // Footer: Individual period avgs (like before)
+        for (let i = 0; i < numScoreColumns; i++) {
+            const colAvg = columnCounts[i] > 0 ? (columnTotals[i] / columnCounts[i]).toFixed(2) : '0.00';
+            const colId = columnIdMap[i];
+            const el = document.getElementById(colId);
+            if (el) el.innerHTML = `${colAvg} <small>(${getLetterGrade(colAvg, isGPAMode)})</small>`;
+        }
+
+        // Footer: Semester overall avgs (after periods)
+        const sem1Overall = sem1Count > 0 ? (sem1Total / sem1Count).toFixed(2) : '0.00';
+        const sem2Overall = sem2Count > 0 ? (sem2Total / sem2Count).toFixed(2) : '0.00';
+        const finalOverall = grandCount > 0 ? (grandTotal / grandCount).toFixed(2) : '0.00';
+
+        document.getElementById('sem1OverallAvg').innerHTML = `${sem1Overall} <small>(${getLetterGrade(sem1Overall, isGPAMode)})</small>`;
+        document.getElementById('sem2OverallAvg').innerHTML = `${sem2Overall} <small>(${getLetterGrade(sem2Overall, isGPAMode)})</small>`;
+        document.getElementById('finalOverallAvg').innerHTML = `${finalOverall} <small>(${getLetterGrade(finalOverall, isGPAMode)})</small>`;
+
+        // Track active columns (all 8 now)
+        activeColumns = Array.from({length: 8}, (_, i) => i);
+
+        displayResult({ sem1: sem1Overall, sem2: sem2Overall, final: finalOverall });
+        generateStats();
+        clearError();
+        toggleDownloadBtns(true);
+    } catch (err) {
+        console.error(err);
+        showError('An unexpected error occurred. Check the console for details.');
     }
+}
+
 
     // UPDATED: Display result (now shows semester breakdown)
     function displayResult(avgs) {
@@ -3110,4 +3118,5 @@ th:hover::after {
 </script>
 </body>
 </html>
+
 
