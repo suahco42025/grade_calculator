@@ -1085,6 +1085,49 @@
         body.dark-mode .qr-modal video {
             border-color: #5a6c7d;
         }
+        /* NEW: Semester grouping styles */
+.sem1-th {
+    background-color: #3498db !important; /* Blue for 1st Sem */
+}
+.sem2-th {
+    background-color: #27ae60 !important; /* Green for 2nd Sem */
+}
+.sem-avg-th {
+    background-color: #9b59b6 !important; /* Purple for avgs */
+}
+.final-avg {
+    background-color: #e74c3c !important; /* Red for final */
+    font-size: 18px !important;
+    color: white !important;
+}
+th:hover::after {
+    content: attr(data-tooltip); /* Tooltips for semesters */
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    z-index: 10;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+.sem1-avg {
+    background-color: #ebf3fd !important; /* Light blue for 1st sem avg */
+}
+.sem2-avg {
+    background-color: #d5f4e6 !important; /* Light green for 2nd sem avg */
+}
+#resetSemesters {
+    background-color: #f39c12;
+    min-width: auto;
+    padding: 15px 20px;
+}
+#resetSemesters:hover {
+    background-color: #e67e22;
+}
     </style>
 </head>
 <body>
@@ -2929,5 +2972,6 @@
     </script>
 </body>
 </html>
+
 
 
