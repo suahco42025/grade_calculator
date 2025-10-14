@@ -971,6 +971,137 @@ body.dark-mode .qr-modal-content {
 body.dark-mode .qr-modal video {
     border-color: #5a6c7d;
 }
+/* NEW: OCR Section Styling */
+.ocr-section {
+    padding: 20px 0;
+}
+.ocr-content {
+    max-width: 800px;
+    margin: 20px auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+.ocr-controls, .ocr-results {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.ocr-results {
+    justify-content: space-between;
+}
+.ocr-instructions {
+    background: #e8f4fd;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #bde0fe;
+}
+.ocr-instructions h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+.ocr-drop-zone {
+    border: 2px dashed #3498db;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+}
+.ocr-drop-zone:hover, .ocr-drop-zone.dragover {
+    background-color: #e8f4fd;
+    border-style: solid;
+}
+.ocr-drop-icon {
+    font-size: 48px;
+    color: #3498db;
+}
+.ocr-drop-separator {
+    color: #aaa;
+    margin: 10px 0;
+}
+.ocr-select-btn {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+.ocr-select-btn:hover {
+    background-color: #2980b9;
+}
+.ocr-preview-container {
+    text-align: center;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+}
+.ocr-preview-container img {
+    max-width: 100%;
+    max-height: 300px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+.ocr-progress {
+    width: 100%;
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+    height: 30px;
+}
+.ocr-progress-bar {
+    width: 0;
+    height: 100%;
+    background-color: #27ae60;
+    transition: width 0.4s ease;
+}
+.ocr-progress-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    line-height: 30px;
+    color: #333;
+}
+.ocr-content textarea {
+    width: 100%;
+    height: 150px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+    resize: vertical;
+    font-family: monospace;
+}
+body.dark-mode .ocr-drop-zone {
+    border-color: #5dade2;
+}
+body.dark-mode .ocr-drop-zone:hover {
+    background-color: #2c3e50;
+}
+body.dark-mode .ocr-instructions {
+    background: #2c3e50;
+    border-color: #5dade2;
+}
+@media (max-width: 768px) {
+    .ocr-content {
+        grid-template-columns: 1fr;
+    }
+}
+body.dark-mode .ocr-preview-container {
+    background: #2c3e50;
+}
+body.dark-mode .ocr-instructions h3 {
+    color: #ecf0f1;
+}
 /* NEW: Semester grouping styles */
 .sem1-th {
     background-color: #3498db !important; /* Blue for 1st Sem */

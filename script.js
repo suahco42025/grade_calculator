@@ -431,7 +431,138 @@ function addParsedGrades(lines) {
     });
 }
 
-// JS Fallback for www redirect (uncomment if no custom domain)
+// NEW: Advanced OCR Functions
+function setupOcrDropZone() {
+    const dropZone = document.getElementById('ocrDropZone');
+    const fileInput = document.getElementById('ocrFileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length) {
+            fileInput.files = files;
+            handleOcrFileSelect({ target: fileInput });
+        }
+    });
+}
+
+function handleOcrFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file || !file.type.startsWith('image/')) {
+        alert('Please select an image file.');
+        return;
+    }
+
+    resetOcrSection(); // Clear previous results
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('ocrPreviewImage').src = e.target.result;
+        document.getElementById('ocrPreviewContainer').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+
+    runOcr(reader);
+}
+
+function resetOcrSection() {
+    document.getElementById('ocrPreviewContainer').style.display = 'none';
+    document.getElementById('ocrPreviewImage').src = '#';
+    document.getElementById('ocrProgress').style.display = 'none';
+    document.getElementById('ocrProgressBar').style.width = '0%';
+    document.getElementById('ocrProgressBar').style.backgroundColor = '#27ae60';
+    document.getElementById('ocrProgressText').textContent = '';
+    document.getElementById('ocrResultText').value = '';
+}
+
+async function preprocessImage(reader) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.getElementById('ocrPreprocessCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            // 1. Draw image
+            ctx.drawImage(img, 0, 0);
+
+            // 2. Apply filters: grayscale and contrast
+            ctx.filter = 'grayscale(100%) contrast(180%)';
+            ctx.drawImage(canvas, 0, 0); // Re-draw with filter
+
+            resolve(canvas);
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+    });
+}
+
+async function runOcr(reader) {
+    const progressDiv = document.getElementById('ocrProgress');
+    const progressBar = document.getElementById('ocrProgressBar');
+    const progressText = document.getElementById('ocrProgressText');
+    const resultText = document.getElementById('ocrResultText');
+
+    progressDiv.style.display = 'block';
+    resultText.value = '';
+
+    try {
+        // 1. Pre-process the image for better accuracy
+        const processedCanvas = await preprocessImage(reader);
+
+        const { createWorker } = Tesseract;
+        const worker = await createWorker('eng', 1, {
+            logger: m => {
+                if (m.status === 'recognizing text') {
+                    const progress = Math.round(m.progress * 100);
+                    progressBar.style.width = `${progress}%`;
+                    progressText.textContent = `Recognizing... ${progress}%`;
+                } else {
+                    progressText.textContent = m.status.charAt(0).toUpperCase() + m.status.slice(1) + '...';
+                }
+            }
+        });
+        const { data: { text } } = await worker.recognize(processedCanvas);
+        await worker.terminate();
+
+        resultText.value = text;
+        progressText.textContent = 'Recognition Complete!';
+    } catch (err) {
+        console.error('OCR Error:', err);
+        progressText.textContent = 'OCR failed. Please try a clearer image.';
+        progressBar.style.width = '100%';
+        progressBar.style.backgroundColor = '#e74c3c';
+    }
+}
+
+function parseAndAddOcrGrades() {
+    const text = document.getElementById('ocrResultText').value;
+    if (!text.trim()) return alert('No text to parse. Please run OCR first.');
+
+    const lines = text.split('\n').filter(line => line.trim());
+    addParsedGrades(lines);
+    alert('Grades parsed from text! Review the table and click "Calculate Averages".');
+    showSection('grades');
+}
+
+ // JS Fallback for www redirect (uncomment if no custom domain)
 /*
 if (window.location.hostname === 'www.suahco4.github.io') {
     window.location.replace('https://suahco4.github.io' + window.location.pathname);
@@ -443,6 +574,7 @@ function updateMetaForSection(section) {
     const titles = {
         'grades': 'Grade Calculator | Free Online GPA & Average Tool with PDF/CSV Export',
         'help': 'Help & Guide | Grade Calculator - Free GPA Tool',
+        'ocr': 'Advanced OCR | Grade Calculator - Scan from Image',
         'settings': 'Settings | Grade Calculator - Customize Your Experience',
         'profile': 'Profile | Grade Calculator - Manage Account & Sessions',
         'contact': 'Contact Us | Grade Calculator - Get Support',
@@ -1223,6 +1355,10 @@ function showSection(section) {
     } else if (section === 'ai') { // UPDATED: Now opens floating chat instead
         toggleFloatingChat();
         return; // Don't proceed to show full section
+    } else if (section === 'ocr') {
+        const ocrSec = document.getElementById('ocr-section');
+        if (ocrSec) ocrSec.style.display = 'block';
+        // resetOcrSection(); // Let's not reset, so user can see previous result
     } else if (section === 'contact') {
         const contactSec = document.getElementById('contact-section');
         if (contactSec) contactSec.style.display = 'block';
@@ -1365,6 +1501,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // FIXED: Force close mobile nav on load/refresh
     closeMobileNav();
 
+    // NEW: Set current year in footer
+    document.getElementById('copyrightYear').textContent = new Date().getFullYear();
+
     // Initialize EmailJS
     emailjs.init('mMoFbLBQtA226NQY_');
 
@@ -1375,11 +1514,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('addSubject').addEventListener('click', () => addSubjectRow(''));
     document.getElementById('calculate').addEventListener('click', calculateAverages);
     document.getElementById('resetSemesters').addEventListener('click', resetSemesters); // NEW
-    
-    // NEW: OCR Scan button
-    document.getElementById('scanGradesBtn').addEventListener('click', () => {
-        document.getElementById('ocrFileInput').click();
-    });
+
+    // NEW: OCR Event Listeners
+    setupOcrDropZone();
+    document.getElementById('ocrFileInput').addEventListener('change', handleOcrFileSelect);
     
     // Event delegation for remove buttons (dynamic)
     document.addEventListener('click', function(e) {

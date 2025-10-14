@@ -85,6 +85,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script> <!-- For scanning QRs -->
     <!-- NEW: Tesseract.js for OCR -->
     <script src="https://unpkg.com/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
+
     <!-- Firebase SDK -->
     <script type="module">
         // Import Firebase modules
@@ -128,6 +129,7 @@
                 <li><a href="#" onclick="showSection('profile')">Profile</a></li>
                 <li><a href="#" onclick="showSection('settings')">Settings</a></li>
                 <li><a href="#" onclick="showSection('help')">Help</a></li>
+                <li><a href="#" onclick="showSection('ocr')">OCR Scan</a></li>
                 <li><a href="#" onclick="showSection('contact')">Contact</a></li>
             </ul>
             <div class="nav-profile">
@@ -157,7 +159,7 @@
             <button class="floating-chat-close" onclick="toggleFloatingChat()">&times;</button>
         </div>
         <div id="floatingChatMessages" class="floating-chat-messages">
-            <div class="ai-message ai">Hi! I'm your assistant. Ask me about your grades, study advice, or tool tips.</div>
+            <div class="ai-message ai">Hi! I'm your assistant. Ask me about your grades, study advice, or tool tips. For example: "How do I improve my Math score?"</div>
         </div>
         <div class="floating-chat-input">
             <input type="text" id="floatingChatInput" placeholder="Type your question..." onkeypress="handleFloatingKeyPress(event)">
@@ -182,23 +184,22 @@
     </div>
 
     <!-- NEW: Hidden file input for OCR -->
-    <input type="file" id="ocrFileInput" accept="image/*" style="display: none;" onchange="handleOCRFileUpload(event)">
 
     <div class="container">
         <!-- Wrapped: Grades Section -->
         <section id="grades-section" class="grades-section">
             <div class="controls">
     <button id="addSubject">Add Subject</button>
-    <button id="scanGradesBtn">📷 Scan Grades from Paper</button>
-    <button id="calculate">Calculate Averages</button>
-    <!-- Download buttons (hidden initially) -->
-    <div>
+    <button id="scanGradesBtn" onclick="showSection('ocr')" style="background-color: #1abc9c;">📷 Scan Grades (OCR)</button>
+    <button id="calculate">Calculate Averages</button>    <!-- Download buttons (hidden initially) -->
+    <div class="download-buttons">
         <button id="downloadBtn" style="display: none; background-color: #f39c12;" onclick="downloadCSV()">Download CSV</button>
         <button id="pdfBtn" style="display: none; background-color: #9b59b6;" onclick="downloadPDF()">Download PDF</button>
     </div>
 </div>
             <!-- Grade Table-->
-            <table id="gradeTable">
+            <div class="table-wrapper">
+                <table id="gradeTable">
     <thead>
         <tr>
             <th class="subject-th">Subject</th>
@@ -212,7 +213,7 @@
             <th class="sem2-th" data-tooltip="2nd Semester">6th Period</th>
             <th class="sem2-th" data-tooltip="2nd Semester">Final Exam</th>
             <th class="sem-avg-th" data-tooltip="2nd Semester Average">2nd Sem Avg</th>
-            <th class="final-avg" data-tooltip="Overall Final Average">Yearly Avg</th>
+            <th class="final-avg" data-tooltip="Overall Final Average">Final Avg</th>
         </tr>
     </thead>
     <tbody>
@@ -242,6 +243,7 @@
         </tr>
     </tfoot>
 </table>
+            </div>
             <div id="result"></div>
             <div id="error" class="error"></div>
         </section>
@@ -262,6 +264,45 @@
                 </div>
                 <div id="aiStatus" class="ai-status"></div>
                 <p style="text-align: center; font-size: 12px; color: #999;">Note: Your chats are sent to OpenAI for processing. No data is stored.</p>
+            </div>
+            <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
+        </section>
+
+        <!-- NEW: Advanced OCR Section -->
+        <section id="ocr-section" class="ocr-section" style="display: none;">
+            <h1>Advanced OCR - Scan Grades</h1>
+            <canvas id="ocrPreprocessCanvas"></canvas> <!-- Hidden canvas for image processing -->
+            <div class="ocr-content">
+                <!-- Left Column: Controls -->
+                <div class="ocr-controls">
+                    <div id="ocrDropZone" class="ocr-drop-zone">
+                        <div class="ocr-drop-icon">📷</div>
+                        <p>Drag & Drop an image here</p>
+                        <p class="ocr-drop-separator">or</p>
+                        <button type="button" class="ocr-select-btn" onclick="document.getElementById('ocrFileInput').click()">Select Image</button>
+                        <input type="file" id="ocrFileInput" accept="image/*" style="display: none;">
+                    </div>
+                    <div class="ocr-instructions">
+                        <h3>How to Get the Best Results:</h3>
+                        <ul>
+                            <li>Use a clear, well-lit image of your grade sheet.</li>
+                            <li>Ensure the text is horizontal and not skewed.</li>
+                            <li>Crop the image to include only the grades table.</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Right Column: Results -->
+                <div class="ocr-results">
+                    <div id="ocrPreviewContainer" class="ocr-preview-container" style="display: none;">
+                        <img id="ocrPreviewImage" src="#" alt="Image preview">
+                    </div>
+                    <div id="ocrProgress" class="ocr-progress" style="display: none;">
+                        <div id="ocrProgressBar" class="ocr-progress-bar"></div>
+                        <span id="ocrProgressText"></span>
+                    </div>
+                    <textarea id="ocrResultText" placeholder="Recognized text will appear here..."></textarea>
+                    <button id="parseOcrBtn" class="small-btn" onclick="parseAndAddOcrGrades()">Parse & Add to Table</button>
+                </div>
             </div>
             <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
         </section>
@@ -680,7 +721,7 @@
 
     <footer>
         <div class="footer-container">
-            <p>&copy; 2025 Grade Calculator. All rights reserved. Last updated October 2025.</p>
+            <p>&copy; <span id="copyrightYear">2025</span> Grade Calculator. All rights reserved. Last updated October 2025.</p>
             <p>Developed with ❤️ for students everywhere.</p>
             <div class="footer-links">
                 <a href="#" onclick="showSection('privacy')">Privacy Policy</a>
@@ -693,5 +734,3 @@
 <script src="script.js" defer></script>
 </body>
 </html>
-
-
