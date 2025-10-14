@@ -125,7 +125,7 @@
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 10px;
+            border-radius: 0.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 30px;
             overflow-x: auto; /* For horizontal scroll on small screens */
@@ -149,11 +149,11 @@
             color: white;
             border: none;
             padding: 15px 30px; /* Increased from 10px 20px */
-            border-radius: 5px;
+            border-radius: 0.3rem;
             cursor: pointer;
             font-size: 18px; /* Increased from 16px */
             transition: background-color 0.3s;
-            min-width: 120px; /* Added for consistency on main buttons */
+            min-width: 7.5rem; /* Added for consistency on main buttons */
         }
         button:hover {
             background-color: #2980b9;
@@ -191,7 +191,7 @@
         th, td {
             padding: 20px; /* Increased from 10px */
             text-align: center;
-            border: 1px solid #ddd;
+            border: 0.0625rem solid #ddd;
             font-size: 16px; /* Added for larger text */
         }
         th {
@@ -206,9 +206,9 @@
         }
         input[type="text"], input[type="number"] {
             width: 100px; /* Increased from 70px for numbers */
-            padding: 10px; /* Increased from 5px */
-            border: 1px solid #ddd;
-            border-radius: 3px;
+            padding: 0.625rem; /* Increased from 5px */
+            border: 0.0625rem solid #ddd;
+            border-radius: 0.2rem;
             box-sizing: border-box;
             text-align: center;
             font-size: 16px; /* Added to match table */
@@ -226,8 +226,8 @@
             background-color: #e74c3c;
             color: white;
             border: none;
-            padding: 8px 15px; /* Increased from 3px 8px */
-            border-radius: 3px;
+            padding: 0.5rem 0.9375rem; /* Increased from 3px 8px */
+            border-radius: 0.2rem;
             cursor: pointer;
             font-size: 16px; /* Increased from 12px */
             margin-left: 5px;
@@ -276,7 +276,7 @@
             left: 0;
             width: 100%;
             background-color: #2c3e50;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
             z-index: 100;
         }
         .nav-container {
@@ -286,7 +286,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 0 20px;
-            height: 60px;
+            height: 3.75rem;
         }
         .nav-logo a {
             color: white;
@@ -304,7 +304,7 @@
         .nav-menu li a {
             color: white;
             text-decoration: none;
-            padding: 10px;
+            padding: 0.625rem;
             border-radius: 5px;
             transition: background-color 0.3s;
         }
@@ -317,8 +317,8 @@
             position: relative;
         }
         .profile-pic {
-            width: 40px;
-            height: 40px;
+            width: 2.5rem;
+            height: 2.5rem;
             border-radius: 50%;
             cursor: pointer;
             border: 2px solid #3498db;
@@ -330,12 +330,12 @@
         /* Profile dropdown - MINIMIZED VERSION */
         .profile-dropdown {
             position: absolute;
-            top: 45px; /* Reduced from 50px for tighter fit */
+            top: 2.8rem; /* Reduced from 50px for tighter fit */
             right: 0;
             background: #34495e;
             border-radius: 5px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* Slightly tighter shadow for minimalism */
-            display: none;
+            display: none; /* Hidden initially */
             min-width: 120px; /* Reduced from 150px */
             z-index: 101;
         }
@@ -345,7 +345,7 @@
         .profile-dropdown a {
             display: block;
             color: white;
-            padding: 8px 12px; /* Reduced from 10px 15px for compact items */
+            padding: 0.5rem 0.75rem; /* Reduced from 10px 15px for compact items */
             text-decoration: none;
             transition: background 0.3s;
             font-size: 14px; /* Added: Slightly smaller font for density */
@@ -356,15 +356,15 @@
         .hamburger {
             display: none;
             flex-direction: column;
-            cursor: pointer;
+            cursor: pointer; /* Make it obvious it's clickable */
         }
         .hamburger span {
-            width: 25px;
-            height: 3px;
+            width: 1.5rem;
+            height: 0.2rem;
             background-color: white;
-            margin: 3px 0;
+            margin: 0.2rem 0;
             transition: 0.3s;
-        }
+        } /* Spacing bars */
         /* Mobile: Hamburger menu - FIXED FOR REFRESH */
         @media (max-width: 768px) {
             .controls {
@@ -402,7 +402,7 @@
                 background-color: #2c3e50;
                 width: 100%;
                 text-align: center;
-                transition: left 0.3s ease; /* Smoother transition */
+                transition: left 0.3s ease;
                 padding: 20px 0;
                 z-index: 99; /* Below profile dropdown */
             }
@@ -424,7 +424,7 @@
         }
         /* Help section styling */
         .help-section {
-            padding: 20px 0;
+            padding: 1.25rem 0;
         }
         .help-content {
             max-width: 800px;
@@ -432,7 +432,7 @@
         }
         .help-card {
             background: #f8f9fa;
-            border: 1px solid #ddd;
+            border: 0.0625rem solid #ddd;
             border-radius: 8px;
             margin-bottom: 15px;
             overflow: hidden;
@@ -440,7 +440,7 @@
         .help-card h2 {
             background: #3498db;
             color: white;
-            padding: 15px;
+            padding: 0.9375rem;
             margin: 0;
             cursor: pointer;
             font-size: 18px;
@@ -453,7 +453,7 @@
         }
         .accordion-content {
             display: none;
-            padding: 15px;
+            padding: 0.9375rem;
             max-height: 300px;
             overflow-y: auto;
         }
@@ -474,7 +474,7 @@
             background-color: #27ae60;
             color: white;
             border: none;
-            padding: 15px 30px; /* Matches global button increase */
+            padding: 0.9375rem 1.875rem; /* Matches global button increase */
             border-radius: 5px;
             cursor: pointer;
             font-size: 18px; /* Matches global */
@@ -492,7 +492,7 @@
         }
         /* Settings section styling */
         .settings-section {
-            padding: 20px 0;
+            padding: 1.25rem 0;
         }
         .settings-content {
             max-width: 800px;
@@ -500,7 +500,7 @@
         }
         .setting-card {
             background: #f8f9fa;
-            border: 1px solid #ddd;
+            border: 0.0625rem solid #ddd;
             border-radius: 8px;
             margin-bottom: 20px;
             padding: 20px;
@@ -515,7 +515,7 @@
         }
         .setting-card input[type="number"], .setting-card input[type="text"] {
             width: 80px;
-            padding: 5px;
+            padding: 0.3125rem;
             border: 1px solid #ddd;
             border-radius: 3px;
             margin-right: 10px;
@@ -524,7 +524,7 @@
             background-color: #3498db;
             color: white;
             border: none;
-            padding: 10px 20px; /* Increased from 5px 10px */
+            padding: 0.625rem 1.25rem; /* Increased from 5px 10px */
             border-radius: 3px;
             cursor: pointer;
             font-size: 16px; /* Increased from 14px */
@@ -536,7 +536,7 @@
             background-color: #e74c3c;
             color: white;
             border: none;
-            padding: 15px 30px; /* Matches global increase */
+            padding: 0.9375rem 1.875rem; /* Matches global increase */
             border-radius: 5px;
             cursor: pointer;
             font-size: 18px; /* Matches global */
@@ -547,7 +547,7 @@
         }
         .small-text {
             font-size: 12px;
-            color: #999;
+            color: #666; /* Darkened */
             margin-top: 5px;
         }
         /* Toggle switch styling */
@@ -605,7 +605,7 @@
         }
         body.dark-mode .help-card, body.dark-mode .setting-card, body.dark-mode .profile-card, body.dark-mode .contact-card {
             background: #3d566e;
-            border-color: #5a6c7d;
+            border-color: #6c757d;
         }
         body.dark-mode .result { background-color: #1e3a2f; color: #a3e4d7; }
         body.dark-mode .error { color: #ff6b6b; }
@@ -617,7 +617,7 @@
         /* Footer styling */
         footer {
             text-align: center;
-            padding: 20px;
+            padding: 1.25rem;
             color: #666;
             margin-top: 20px;
         }
@@ -631,7 +631,7 @@
         }
         /* Profile section styling */
         .profile-section {
-            padding: 20px 0;
+            padding: 1.25rem 0;
         }
         .profile-content {
             max-width: 800px;
@@ -639,7 +639,7 @@
         }
         .profile-card {
             background: #f8f9fa;
-            border: 1px solid #ddd;
+            border: 0.0625rem solid #ddd;
             border-radius: 8px;
             margin-bottom: 20px;
             padding: 20px;
@@ -729,7 +729,7 @@
         /* Auth form styling */
         .auth-form {
             display: grid;
-            gap: 10px;
+            gap: 0.625rem;
             max-width: 300px;
         }
         .auth-form input {
@@ -737,7 +737,7 @@
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 3px;
-            box-sizing: border-box;
+            box-sizing: border-box; /* Prevents padding from affecting width */
         }
         .auth-toggle {
             text-align: center;
@@ -758,14 +758,14 @@
         /* Contact section styling */
         .contact-section {
             padding: 20px 0;
-        }
+        } /* Match help and settings */
         .contact-content {
             max-width: 800px;
             margin: 0 auto;
         }
         .contact-card {
             background: #f8f9fa;
-            border: 1px solid #ddd;
+            border: 0.0625rem solid #ddd;
             border-radius: 8px;
             margin-bottom: 20px;
             padding: 20px;
@@ -776,7 +776,7 @@
         }
         .contact-form {
             display: grid;
-            gap: 10px;
+            gap: 0.625rem;
         }
         .contact-form label {
             font-weight: bold;
@@ -784,7 +784,7 @@
         .contact-form input, .contact-form textarea {
             width: 100%;
             padding: 8px;
-            border: 1px solid #ddd;
+            border: 0.0625rem solid #ddd;
             border-radius: 3px;
             box-sizing: border-box;
         }
@@ -1236,21 +1236,26 @@ th:hover::after {
         <!-- Dynamic rows will be added here -->
     </tbody>
     <tfoot>
-    <tr class="period-avg-row">
-        <td><strong>Semester Averages</strong></td>
-        <td id="avg1">0.00</td>
-        <td id="avg2">0.00</td>
-        <td id="avg3">0.00</td>
-        <td id="avgExam1">0.00</td>
-        <td id="avg4">0.00</td>
-        <td id="avg5">0.00</td>
-        <td id="avg6">0.00</td>
-        <td id="avgExam2">0.00</td>
-        <td class="sem1-avg" id="sem1OverallAvg">0.00</td>
-        <td class="sem2-avg" id="sem2OverallAvg">0.00</td>
-        <td class="final-avg" id="finalOverallAvg">0.00</td>
-    </tr>
-</tfoot>
+        <tr class="period-avg-row">
+            <td><strong>Period Averages</strong></td>
+            <td id="avg1">0.00</td>
+            <td id="avg2">0.00</td>
+            <td id="avg3">0.00</td>
+            <td id="avgExam1">0.00</td>
+            <td id="avg4">0.00</td>
+            <td id="avg5">0.00</td>
+            <td id="avg6">0.00</td>
+            <td id="avgExam2">0.00</td>
+            <td colspan="3"></td> <!-- Span across semester/final columns -->
+        </tr>
+        <tr class="period-avg-row">
+            <td><strong>Semester Averages</strong></td>
+            <td colspan="8"></td> <!-- Span across period columns -->
+            <td class="sem1-avg" id="sem1OverallAvg">0.00</td>
+            <td class="sem2-avg" id="sem2OverallAvg">0.00</td>
+            <td class="final-avg" id="finalOverallAvg">0.00</td>
+        </tr>
+    </tfoot>
 </table>
             <div id="result"></div>
             <div id="error" class="error"></div>
@@ -3032,7 +3037,7 @@ th:hover::after {
             document.querySelector('#gradeTable tbody').innerHTML = '';
             const defaults = localStorage.getItem('defaultSubjects') || 'Mathematics,English,Science,History';
             defaults.split(',').forEach(name => addSubjectRow(name.trim()));
-            toggleDownloadBtns(false);
+            toggleDownloadBtns(false); // Corrected from toggleDownloadBtns
             activeColumns = [];
             columnIdMap.forEach(id => document.getElementById(id).textContent = '0.00');
             document.getElementById('sem1OverallAvg').textContent = '0.00';
@@ -3118,7 +3123,3 @@ th:hover::after {
 </script>
 </body>
 </html>
-
-
-
-
