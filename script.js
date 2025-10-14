@@ -599,17 +599,21 @@ function addSubjectRow(defaultName = '') {
     subjectCount++;
     const tbody = document.querySelector('#gradeTable tbody');
     const row = document.createElement('tr');
-    let scoreInputs = '';
-    for (let i = 0; i < numScoreColumns; i++) { // 8 score columns
-        scoreInputs += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
-    }
+    
+    // Build the row with the new column order
+    let scoreInputs1 = '';
+    for (let i = 0; i < 4; i++) scoreInputs1 += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    let scoreInputs2 = '';
+    for (let i = 4; i < 8; i++) scoreInputs2 += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
+
     row.innerHTML = `
         <td>
             <input type="text" value="${defaultName}" placeholder="Enter subject name">
             <button class="remove-btn">Remove</button>
         </td>
-        ${scoreInputs}
+        ${scoreInputs1}
         <td class="sem1-avg average-cell">0.00</td>
+        ${scoreInputs2}
         <td class="sem2-avg average-cell">0.00</td>
         <td class="final-avg average-cell">0.00</td>
     `;
@@ -641,62 +645,78 @@ function toggleDownloadBtns(show) {
     if (pdfBtn) pdfBtn.style.display = show ? 'inline-block' : 'none';
 }
 
-// UPDATED: Download table as CSV (added empty table check)
-function downloadCSV() {
-    // FIXED: Add validation like PDF
-    if (activeColumns.length === 0) {
-        alert('No scores entered. Calculate averages first!');
-        return;
-    }
+// NEW: Toggle GPA mode
+function toggleGPAScale() {
+    isGPAMode = document.getElementById('gpaToggle').checked;
+    localStorage.setItem('gpaMode', isGPAMode);
+}
+
+// UPDATED: Function to calculate averages (now with semester logic)
+
+// REFACTORED: Central function to get all table data for exports
+function getExportData() {
     const table = document.getElementById('gradeTable');
-    const tbodyRows = Array.from(table.querySelectorAll('tbody tr'));
-    let csvContent = '';
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    const bodyRows = [];
+    const footerRows = [];
 
-    // Dynamic headers: Subject + All Periods + Sem Avgs + Final Avg
-    const headers = ['Subject'];
-    activeColumns.forEach(i => headers.push(columnNames[i]));
-    headers.push('1st Sem Avg', '2nd Sem Avg', 'Final Avg');
-    csvContent += headers.join(',') + '\n';
-
-    // Data rows (only tbody, filter columns)
-    tbodyRows.forEach(row => {
-        const cells = Array.from(row.querySelectorAll('th, td'));
-        if (cells.length === 0) return;
-
+    // Get Body Data
+    table.querySelectorAll('tbody tr').forEach(row => {
         const rowData = [];
-        rowData.push(`"${cells[0].querySelector('input') ? (cells[0].querySelector('input').value || '') : cells[0].textContent.trim()}"`); // Subject
+        const subjectInput = row.querySelector('input[type="text"]');
+        rowData.push(subjectInput ? subjectInput.value.trim() : ''); // Subject Name
 
-        // All active columns
-        activeColumns.forEach(i => {
-            const cell = cells[i + 1]; // +1 skips subject column
-            const input = cell.querySelector('input');
-            rowData.push(`"${input ? (input.value || '') : cell.textContent.trim()}"`);
+        const scoreInputs = row.querySelectorAll('input[type="number"]');
+        const avgCells = row.querySelectorAll('.average-cell');
+
+        // Corresponds to P1-P4, E1
+        scoreInputs.forEach((input, index) => {
+            rowData.push(input.value || '');
+            if (index === 3) { // After 1st Exam (index 3)
+                rowData.push(avgCells[0] ? avgCells[0].textContent.trim() : ''); // 1st Sem Avg
+            }
         });
 
-        // Sem and final avgs
-        rowData.push(`"${cells[cells.length - 3].textContent.trim()}"`); // 1st Sem
-        rowData.push(`"${cells[cells.length - 2].textContent.trim()}"`); // 2nd Sem
-        rowData.push(`"${cells[cells.length - 1].textContent.trim()}"`); // Final
-        csvContent += rowData.join(',') + '\n';
+        // After all scores, add the last two averages
+        rowData.push(avgCells[1] ? avgCells[1].textContent.trim() : ''); // 2nd Sem Avg
+        rowData.push(avgCells[2] ? avgCells[2].textContent.trim() : ''); // Final Avg
+        bodyRows.push(rowData);
     });
 
-    // Add footer row (period averages, filtered)
-    const footerRow = ['Semester Averages'];
-    activeColumns.forEach(i => {
-        const avgId = columnIdMap[i];
-        const avgEl = document.getElementById(avgId);
-        footerRow.push(`"${avgEl ? avgEl.textContent : '0.00'}"`);
+    // Get Footer Data
+    table.querySelectorAll('tfoot tr').forEach(row => {
+        const rowData = Array.from(row.querySelectorAll('td')).map(td => td.textContent.trim());
+        footerRows.push(rowData);
     });
-    footerRow.push(`"${document.getElementById('sem1OverallAvg').textContent}"`);
-    footerRow.push(`"${document.getElementById('sem2OverallAvg').textContent}"`);
-    footerRow.push(`"${document.getElementById('finalOverallAvg').textContent}"`); // Overall
-    csvContent += footerRow.join(',') + '\n';
 
-    // Filename with periods
+    return { headers, bodyRows, footerRows };
+}
+
+// REFACTORED: Download CSV using the new data function
+function downloadCSV() {
+    if (document.querySelectorAll('#gradeTable tbody tr').length === 0) {
+        alert('No data to export. Add subjects and scores first.');
+        return;
+    }
+
+    const { headers, bodyRows, footerRows } = getExportData();
+    let csvContent = '';
+
+    // Helper to format a row for CSV
+    const toCsvRow = (arr) => arr.map(val => `"${(val || '').replace(/"/g, '""')}"`).join(',') + '\n';
+
+    csvContent += toCsvRow(headers);
+    bodyRows.forEach(row => {
+        csvContent += toCsvRow(row);
+    });
+    footerRows.forEach(row => {
+        csvContent += toCsvRow(row);
+    });
+
+    // Filename
     const includeDate = localStorage.getItem('dateInExport') !== 'false';
     const dateStr = includeDate ? `-${new Date().toISOString().split('T')[0]}` : '';
-    const periodStr = activeColumns.length > 0 ? ` - ${activeColumns.map(i => columnNames[i]).join(', ')}` : '';
-    const filename = `grade-matrix${periodStr}${dateStr}.csv`;
+    const filename = `grade-matrix${dateStr}.csv`;
 
     // Download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -710,97 +730,57 @@ function downloadCSV() {
     document.body.removeChild(link);
 }
 
-// Download table as PDF (filtered to active columns, with checks & footer)
+// REFACTORED: Download PDF using the new data function
 function downloadPDF() {
-    // Enhanced check
-    if (activeColumns.length === 0) {
-        alert('No scores entered. Calculate averages first!');
+    if (document.querySelectorAll('#gradeTable tbody tr').length === 0) {
+        alert('No data to export. Add subjects and scores first.');
         return;
     }
+
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape' });
-        const tableData = [];
-        
-        // Dynamic headers: Subject + Active Periods + Sem Avgs + Final Avg
-        const tableHeaders = ['Subject'];
-        activeColumns.forEach(i => tableHeaders.push(columnNames[i]));
-        tableHeaders.push('1st Sem Avg', '2nd Sem Avg', 'Final Avg');
-
-        // Collect data from table (only tbody rows, filter columns)
-        const tbodyRows = document.querySelectorAll('#gradeTable tbody tr');
-        tbodyRows.forEach(row => {
-            const cells = Array.from(row.querySelectorAll('th, td'));
-            if (cells.length === 0) return;
-
-            const rowData = [];
-            rowData.push(cells[0].querySelector('input') ? (cells[0].querySelector('input').value || '') : cells[0].textContent.trim()); // Subject
-
-            // All active columns
-            activeColumns.forEach(i => {
-                const cell = cells[i + 1]; // +1 skips subject column
-                const input = cell.querySelector('input');
-                rowData.push(input ? (input.value || '') : cell.textContent.trim());
-            });
-
-            // Sem and final avgs
-            rowData.push(cells[cells.length - 3].textContent.trim()); // 1st Sem
-            rowData.push(cells[cells.length - 2].textContent.trim()); // 2nd Sem
-            rowData.push(cells[cells.length - 1].textContent.trim()); // Final
-            tableData.push(rowData);
-        });
-
-        if (tableData.length === 0) {
-            alert('No data to export. Add subjects and scores first.');
-            return;
-        }
+        const { headers, bodyRows, footerRows } = getExportData();
 
         // Add table to PDF
         doc.autoTable({
-            head: [tableHeaders],
-            body: tableData,
-            startY: 30,
+            head: [headers],
+            body: bodyRows,
+            foot: footerRows,
+            startY: 25,
             theme: 'grid',
             styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [44, 73, 94] }, // Dark blue header
+            headStyles: { fillColor: [44, 73, 94] },
+            footStyles: { fillColor: [232, 244, 253], textColor: [0, 0, 0], fontStyle: 'bold' },
             margin: { left: 10, right: 10 }
         });
 
-        // Add title, periods note, and overall avg
+        // Add title and overall averages
         doc.setFontSize(16);
-        doc.text('Grade Matrix Report', 14, 10);
-        const periodStr = activeColumns.length > 0 ? ` (Periods: ${activeColumns.map(i => columnNames[i].substring(0, 6)).join(', ')})` : '';
+        doc.text('Grade Matrix Report', 14, 15);
         doc.setFontSize(10);
-        doc.text(`Filtered to entered data${periodStr}`, 14, 20);
-        doc.setFontSize(12);
-        doc.text(`1st Sem Avg: ${document.getElementById('sem1OverallAvg').textContent} | 2nd Sem Avg: ${document.getElementById('sem2OverallAvg').textContent} | Final Avg: ${document.getElementById('finalOverallAvg').textContent}`, 14, doc.lastAutoTable.finalY + 10);
+        const sem1Avg = document.getElementById('sem1OverallAvg').textContent.trim();
+        const sem2Avg = document.getElementById('sem2OverallAvg').textContent.trim();
+        const finalAvg = document.getElementById('finalOverallAvg').textContent.trim();
+        doc.text(`Overall Averages: 1st Sem: ${sem1Avg} | 2nd Sem: ${sem2Avg} | Final: ${finalAvg}`, 14, doc.lastAutoTable.finalY + 10);
 
         // Add timestamp footer
         const pageHeight = doc.internal.pageSize.height;
         doc.setFontSize(8);
         doc.text(`Generated: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
 
-        // Filename with periods (truncated)
+        // Filename
         const includeDate = localStorage.getItem('dateInExport') !== 'false';
         const dateStr = includeDate ? `-${new Date().toISOString().split('T')[0]}` : '';
-        const periodStrFile = activeColumns.length > 0 ? ` - ${activeColumns.map(i => columnNames[i].substring(0, 6)).join(',')}` : '';
-        const filename = `grade-matrix${periodStrFile}${dateStr}.pdf`;
+        const filename = `grade-matrix${dateStr}.pdf`;
 
         // Download
         doc.save(filename);
     } catch (err) {
         console.error('PDF Export Error:', err);
-        showError('PDF export failed. Check console or try smaller table.');
+        showError('PDF export failed. Check console or try a smaller table.');
     }
 }
-
-// NEW: Toggle GPA mode
-function toggleGPAScale() {
-    isGPAMode = document.getElementById('gpaToggle').checked;
-    localStorage.setItem('gpaMode', isGPAMode);
-}
-
-// UPDATED: Function to calculate averages (now with semester logic)
 
 
             function calculateAverages() {
@@ -834,7 +814,7 @@ try {
     for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
         const subjectInput = row.querySelector('input[type="text"]');
-        const scoreInputs = row.querySelectorAll('input[type="number"]');
+            const scoreInputs = Array.from(row.querySelectorAll('input[type="number"]'));
         const sem1AvgCell = row.querySelector('.sem1-avg');
         const sem2AvgCell = row.querySelector('.sem2-avg');
         const finalAvgCell = row.querySelector('.final-avg');

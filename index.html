@@ -206,11 +206,11 @@
             <th class="sem1-th" data-tooltip="1st Semester">2nd Period</th>
             <th class="sem1-th" data-tooltip="1st Semester">3rd Period</th>
             <th class="sem1-th" data-tooltip="1st Semester">1st Exam</th>
+            <th class="sem-avg-th" data-tooltip="1st Semester Average">1st Sem Avg</th>
             <th class="sem2-th" data-tooltip="2nd Semester">4th Period</th>
             <th class="sem2-th" data-tooltip="2nd Semester">5th Period</th>
             <th class="sem2-th" data-tooltip="2nd Semester">6th Period</th>
             <th class="sem2-th" data-tooltip="2nd Semester">Final Exam</th>
-            <th class="sem-avg-th" data-tooltip="1st Semester Average">1st Sem Avg</th>
             <th class="sem-avg-th" data-tooltip="2nd Semester Average">2nd Sem Avg</th>
             <th class="final-avg" data-tooltip="Overall Final Average">Final Avg</th>
         </tr>
@@ -225,16 +225,18 @@
             <td id="avg2">0.00</td>
             <td id="avg3">0.00</td>
             <td id="avgExam1">0.00</td>
+            <td></td> <!-- Placeholder for 1st Sem Avg column -->
             <td id="avg4">0.00</td>
             <td id="avg5">0.00</td>
             <td id="avg6">0.00</td>
             <td id="avgExam2">0.00</td>
-            <td colspan="3"></td> <!-- Span across semester/final columns -->
+            <td colspan="2"></td> <!-- Span across semester/final columns -->
         </tr>
         <tr class="period-avg-row">
             <td><strong>Semester Averages</strong></td>
-            <td colspan="8"></td> <!-- Span across period columns -->
+            <td colspan="4"></td> <!-- Span across period columns -->
             <td class="sem1-avg" id="sem1OverallAvg">0.00</td>
+            <td colspan="4"></td> <!-- Span across period columns -->
             <td class="sem2-avg" id="sem2OverallAvg">0.00</td>
             <td class="final-avg" id="finalOverallAvg">0.00</td>
         </tr>
