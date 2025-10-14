@@ -568,6 +568,12 @@ footer {
     font-weight: bold;
     color: #27ae60;
 }
+/* NEW: Chart container styling */
+.chart-container {
+    position: relative;
+    margin: 20px 0;
+    height: 300px; /* Give canvas a defined height */
+}
 input[type="file"] {
     margin: 10px 0;
 }

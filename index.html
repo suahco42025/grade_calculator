@@ -77,6 +77,8 @@
 
     <!-- jsPDF + autoTable for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- NEW: Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <!-- EmailJS for contact form -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -486,18 +488,25 @@
                     <div class="profile-card">
                         <h3>💾 Saved Sessions</h3>
                         <p>Save your current grades to load later. New: Generate QR codes for quick scanning!</p>
-                        <button onclick="saveSession()" class="small-btn">Save Current Session</button>
+                        <button onclick="saveSession()" class="small-btn">Save Current Session & Get QR</button>
                         <!-- NEW: Scan Button -->
+                        <button onclick="generateCurrentSessionQR()" class="small-btn" style="background-color: #1abc9c;">Generate QR for Current Data</button>
                         <button onclick="startQRScan()" class="small-btn" style="background-color: #9b59b6; margin-left: 10px;">📱 Scan QR to Load Session</button>
                         <ul id="sessionList" class="session-list"></ul>
                     </div>
                     
                     <div class="profile-card">
-                        <h3>📊 Quick Stats</h3>
+                        <h3>📊 Quick Stats & Visualizations</h3>
                         <div id="statsGrid" class="stats-grid">
                             <!-- Stats populated dynamically -->
                         </div>
-                        <button onclick="generateStats()" class="small-btn">Refresh Stats</button>
+                        <!-- NEW: Chart Containers -->
+                        <div class="chart-container">
+                            <canvas id="subjectBarChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="gradePieChart"></canvas>
+                        </div>
                     </div>
                     
                     <div class="profile-card">

@@ -9,6 +9,10 @@ let lastSubjectAvgs = []; // For stats
 let currentUser = null; // Firebase user
 let isGPAMode = false; // GPA toggle state
 
+// NEW: Chart instances for visualizations
+let subjectBarChart = null;
+let gradePieChart = null;
+
 // NEW: QR Scanning Variables
 let videoStream = null;
 let qrScanningInterval = null;
@@ -371,6 +375,11 @@ function closeQRModal() {
 
 // NEW: Generate QR for Session (called after save)
 function generateQRForSession(session) {
+    if (!session || typeof session !== 'object') {
+        console.error('generateQRForSession called with invalid data:', session);
+        alert('Could not generate QR code: session data is missing.');
+        return;
+    }
     const qrData = JSON.stringify(session);
     const canvas = document.createElement('canvas');
     QRCode.toCanvas(canvas, qrData, { width: 256 }, (err) => {
@@ -383,51 +392,6 @@ function generateQRForSession(session) {
         link.href = canvas.toDataURL();
         link.click();
         alert('QR code downloaded! Print or share it to scan later.');
-    });
-}
-
-// NEW: OCR Functions
-async function handleOCRFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const status = document.getElementById('qrStatus'); // Reuse for OCR feedback
-    status.textContent = 'Processing image with OCR...';
-
-    try {
-        const { createWorker } = Tesseract;
-        const worker = await createWorker('eng');
-        const { data: { text } } = await worker.recognize(file);
-        await worker.terminate();
-
-        // Simple parsing: Look for lines like "Math 85 90 ..." or numbers
-        const lines = text.split('\n').filter(line => line.trim());
-        addParsedGrades(lines);
-        status.textContent = 'OCR complete! Grades added. Review and calculate.';
-        alert('Grades parsed from image! Check table.');
-    } catch (err) {
-        console.error('OCR Error:', err);
-        status.textContent = 'OCR failed. Try a clearer image.';
-    }
-    event.target.value = ''; // Reset input
-}
-
-function addParsedGrades(lines) {
-    // Basic regex to extract subject and scores (customize as needed)
-    lines.forEach(line => {
-        const match = line.match(/^(\w+.*?)(?:\s+(\d+(?:\.\d+)?))(?:\s+(\d+(?:\.\d+)?)){0,7}$/i);
-        if (match) {
-            const subject = match[1].trim();
-            const scores = match.slice(2).map(s => parseFloat(s)).filter(s => !isNaN(s));
-            if (scores.length > 0) {
-                addSubjectRow(subject);
-                const inputs = document.querySelectorAll('#gradeTable tbody tr:last-child input[type="number"]');
-                scores.slice(0, inputs.length).forEach((score, i) => {
-                    inputs[i].value = score;
-                    updateScoreColor(inputs[i]);
-                });
-            }
-        }
     });
 }
 
@@ -560,6 +524,25 @@ function parseAndAddOcrGrades() {
     addParsedGrades(lines);
     alert('Grades parsed from text! Review the table and click "Calculate Averages".');
     showSection('grades');
+}
+
+function addParsedGrades(lines) {
+    // Basic regex to extract subject and scores (customize as needed)
+    lines.forEach(line => {
+        const match = line.match(/^([a-zA-Z\s]+?)\s+((?:\d{1,3}(?:\.\d+)?\s*)+)$/);
+        if (match) {
+            const subject = match[1].trim();
+            const scores = match[2].trim().split(/\s+/).map(s => parseFloat(s)).filter(s => !isNaN(s));
+            if (scores.length > 0) {
+                addSubjectRow(subject);
+                const inputs = document.querySelectorAll('#gradeTable tbody tr:last-child input[type="number"]');
+                scores.slice(0, inputs.length).forEach((score, i) => {
+                    inputs[i].value = score;
+                    updateScoreColor(inputs[i]);
+                });
+            }
+        }
+    });
 }
 
  // JS Fallback for www redirect (uncomment if no custom domain)
@@ -1194,6 +1177,29 @@ function saveSession() {
     generateQRForSession(session);
 }
 
+// NEW: Generate QR for the current, unsaved session data
+function generateCurrentSessionQR() {
+    const tableData = [];
+    document.querySelectorAll('#gradeTable tbody tr').forEach(row => {
+        const subjectInput = row.querySelector('input[type="text"]');
+        const scoreInputs = Array.from(row.querySelectorAll('input[type="number"]')).map(input => input.value);
+        tableData.push({
+            subject: subjectInput ? subjectInput.value : '',
+            scores: scoreInputs
+        });
+    });
+
+    if (tableData.length === 0) return alert('No data in the table to generate a QR code.');
+
+    const session = {
+        id: 'current-' + Date.now(),
+        timestamp: new Date().toLocaleString() + ' (Unsaved)',
+        data: tableData,
+        overallAvg: lastOverallAvg
+    };
+    generateQRForSession(session);
+}
+
 function loadSessions() {
     const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
     const list = document.getElementById('sessionList');
@@ -1201,13 +1207,36 @@ function loadSessions() {
     sessions.forEach(session => {
         const li = document.createElement('li');
         li.className = 'session-item';
-        li.innerHTML = `
-            <span>${session.timestamp} (Avg: ${session.overallAvg}%)</span>
-            <div>
-                <button class="small-btn" onclick="loadSession(${session.id})">Load</button>
-                <button class="remove-btn" onclick="deleteSession(${session.id})">Delete</button>
-            </div>
-        `;
+
+        const span = document.createElement('span');
+        span.textContent = `${session.timestamp} (Avg: ${session.overallAvg}%)`;
+
+        const div = document.createElement('div');
+
+        // Load button
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'small-btn';
+        loadBtn.textContent = 'Load';
+        loadBtn.onclick = () => loadSession(session.id);
+        div.appendChild(loadBtn);
+
+        // QR button
+        const qrBtn = document.createElement('button');
+        qrBtn.className = 'small-btn';
+        qrBtn.style.backgroundColor = '#1abc9c';
+        qrBtn.textContent = 'QR';
+        qrBtn.onclick = () => generateQRForSession(session);
+        div.appendChild(qrBtn);
+
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'remove-btn';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = () => deleteSession(session.id);
+        div.appendChild(deleteBtn);
+
+        li.appendChild(span);
+        li.appendChild(div);
         list.appendChild(li);
     });
 }
@@ -1246,37 +1275,102 @@ function deleteSession(id) {
 
 // UPDATED: Generate stats (with GPA support)
 function generateStats() {
+    // 1. Basic Stats Grid
     const statsGrid = document.getElementById('statsGrid');
     if (lastSubjectAvgs.length === 0) {
         statsGrid.innerHTML = '<p class="stat-item">No data yet. Calculate grades first!</p>';
+        // Clear charts if they exist
+        if (subjectBarChart) subjectBarChart.destroy();
+        if (gradePieChart) gradePieChart.destroy();
         return;
     }
     const totalSubjects = lastSubjectAvgs.length;
     const bestSubject = lastSubjectAvgs.reduce((max, curr) => curr.final > max.final ? curr : max);
     const worstSubject = lastSubjectAvgs.reduce((min, curr) => curr.final < min.final ? curr : min);
-    let overallDisplay = `${lastOverallAvg}`;
-    if (isGPAMode) {
-        const gpa = (parseFloat(lastOverallAvg)).toFixed(2);
-        overallDisplay += ` (${gpa}/4.0 GPA)`;
-    }
+    const overallDisplay = isGPAMode ? `${lastOverallAvg} GPA` : `${lastOverallAvg}%`;
+
     statsGrid.innerHTML = `
         <div class="stat-item">
             <div>Total Subjects</div>
             <div class="stat-value">${totalSubjects}</div>
         </div>
         <div class="stat-item">
-            <div>Overall Avg</div>
+            <div>Overall</div>
             <div class="stat-value">${overallDisplay}</div>
         </div>
         <div class="stat-item">
             <div>Best: ${bestSubject.name}</div>
-            <div class="stat-value">${bestSubject.final}</div>
+            <div class="stat-value">${isGPAMode ? bestSubject.final.toFixed(2) : bestSubject.final}%</div>
         </div>
         <div class="stat-item">
             <div>Worst: ${worstSubject.name}</div>
-            <div class="stat-value">${worstSubject.final}</div>
+            <div class="stat-value">${isGPAMode ? worstSubject.final.toFixed(2) : worstSubject.final}%</div>
         </div>
     `;
+
+    // 2. Chart Visualizations
+    // Destroy old charts before creating new ones
+    if (subjectBarChart) subjectBarChart.destroy();
+    if (gradePieChart) gradePieChart.destroy();
+
+    // Bar Chart: Subject Performance
+    const barCtx = document.getElementById('subjectBarChart').getContext('2d');
+    subjectBarChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: lastSubjectAvgs.map(s => s.name),
+            datasets: [{
+                label: isGPAMode ? 'Final GPA' : 'Final Average (%)',
+                data: lastSubjectAvgs.map(s => s.final),
+                backgroundColor: lastSubjectAvgs.map(s => s.final < currentThreshold ? 'rgba(231, 76, 60, 0.6)' : 'rgba(52, 152, 219, 0.6)'),
+                borderColor: lastSubjectAvgs.map(s => s.final < currentThreshold ? 'rgba(231, 76, 60, 1)' : 'rgba(52, 152, 219, 1)'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: { display: true, text: 'Subject Performance' },
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: isGPAMode ? 4.0 : 100
+                }
+            }
+        }
+    });
+
+    // Pie Chart: Grade Distribution
+    const gradeCounts = { 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'F': 0 };
+    lastSubjectAvgs.forEach(s => {
+        const letter = getLetterGrade(s.final, isGPAMode);
+        // Handle A-, B+, etc. by grouping them
+        const mainGrade = letter.charAt(0);
+        if (gradeCounts.hasOwnProperty(mainGrade)) {
+            gradeCounts[mainGrade]++;
+        }
+    });
+
+    const pieCtx = document.getElementById('gradePieChart').getContext('2d');
+    gradePieChart = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(gradeCounts),
+            datasets: [{
+                label: 'Grade Distribution',
+                data: Object.values(gradeCounts),
+                backgroundColor: ['#27ae60', '#2980b9', '#f39c12', '#e67e22', '#e74c3c'],
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: { display: true, text: 'Grade Distribution' }
+            }
+        }
+    });
 }
 
 // UPDATED: Contact functions (with fixed auto-reply)
