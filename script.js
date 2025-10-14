@@ -651,6 +651,13 @@ function toggleGPAScale() {
     localStorage.setItem('gpaMode', isGPAMode);
 }
 
+// NEW: Save school name to localStorage
+function saveSchoolName() {
+    const schoolName = document.getElementById('schoolNameInput').value.trim();
+    localStorage.setItem('schoolName', schoolName);
+    alert('School name saved!');
+}
+
 // UPDATED: Function to calculate averages (now with semester logic)
 
 // REFACTORED: Central function to get all table data for exports
@@ -714,12 +721,14 @@ function downloadCSV() {
     });
 
     // Filename
+    const schoolName = localStorage.getItem('schoolName')?.trim() || 'grade-matrix';
+    const sanitizedFilename = schoolName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const includeDate = localStorage.getItem('dateInExport') !== 'false';
     const dateStr = includeDate ? `-${new Date().toISOString().split('T')[0]}` : '';
-    const filename = `grade-matrix${dateStr}.csv`;
+    const filename = `${sanitizedFilename}${dateStr}.csv`;
 
     // Download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); // Added BOM for Excel
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -747,22 +756,21 @@ function downloadPDF() {
             head: [headers],
             body: bodyRows,
             foot: footerRows,
-            startY: 25,
+            startY: 22,
             theme: 'grid',
-            styles: { fontSize: 8, cellPadding: 2 },
+            styles: { fontSize: 8, cellPadding: 2, halign: 'center' },
             headStyles: { fillColor: [44, 73, 94] },
             footStyles: { fillColor: [232, 244, 253], textColor: [0, 0, 0], fontStyle: 'bold' },
-            margin: { left: 10, right: 10 }
+            margin: { left: 10, right: 10 },
         });
 
-        // Add title and overall averages
+        // Add title and footer text
+        const reportTitle = localStorage.getItem('schoolName')?.trim() || 'Grade Matrix Report';
         doc.setFontSize(16);
-        doc.text('Grade Matrix Report', 14, 15);
+        doc.text(reportTitle, 14, 15);
+
         doc.setFontSize(10);
-        const sem1Avg = document.getElementById('sem1OverallAvg').textContent.trim();
-        const sem2Avg = document.getElementById('sem2OverallAvg').textContent.trim();
-        const finalAvg = document.getElementById('finalOverallAvg').textContent.trim();
-        doc.text(`Overall Averages: 1st Sem: ${sem1Avg} | 2nd Sem: ${sem2Avg} | Final: ${finalAvg}`, 14, doc.lastAutoTable.finalY + 10);
+        doc.text(`Overall Averages are listed in the table footer.`, 14, doc.lastAutoTable.finalY + 10);
 
         // Add timestamp footer
         const pageHeight = doc.internal.pageSize.height;
@@ -770,9 +778,10 @@ function downloadPDF() {
         doc.text(`Generated: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
 
         // Filename
+        const sanitizedFilename = reportTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
         const includeDate = localStorage.getItem('dateInExport') !== 'false';
         const dateStr = includeDate ? `-${new Date().toISOString().split('T')[0]}` : '';
-        const filename = `grade-matrix${dateStr}.pdf`;
+        const filename = `${sanitizedFilename}${dateStr}.pdf`;
 
         // Download
         doc.save(filename);
@@ -1272,6 +1281,10 @@ function loadSettings() {
     // Default subjects
     const defaults = localStorage.getItem('defaultSubjects') || 'Mathematics,English,Science,History';
     document.getElementById('defaultSubjectsInput').value = defaults;
+
+    // School Name
+    const schoolName = localStorage.getItem('schoolName') || '';
+    document.getElementById('schoolNameInput').value = schoolName;
     
     // Date in export
     const dateInExport = localStorage.getItem('dateInExport') !== 'false';
