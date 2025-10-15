@@ -77,8 +77,8 @@
 
     <!-- jsPDF + autoTable for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- NEW: Chart.js for visualizations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js for visualizations (using a specific version to resolve source map warnings) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <!-- EmailJS for contact form -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -189,17 +189,20 @@
 
     <div class="container">
         <!-- Wrapped: Grades Section -->
-        <section id="grades-section" class="grades-section">
-            <div class="controls">
-    <button id="addSubject">Add Subject</button>
-    <button id="scanGradesBtn" onclick="showSection('ocr')" style="background-color: #1abc9c;">📷 Scan Grades (OCR)</button>
-    <button id="calculate">Calculate Averages</button>    <!-- Download buttons (hidden initially) -->
-    <div class="download-buttons">
-        <button id="downloadBtn" style="display: none; background-color: #f39c12;" onclick="downloadCSV()">Download CSV</button>
-        <button id="pdfBtn" style="display: none; background-color: #9b59b6;" onclick="downloadPDF()">Download PDF</button>
-    </div>
-</div>
+        <section id="grades-section" class="grades-section active">
+            <div class="grades-header">
+                <h1>Grade Matrix</h1>
+                <div class="controls">
+                    <button id="addSubject" title="Add a new subject row">➕ Add Subject</button>
+                    <button id="scanGradesBtn" onclick="showSection('ocr')" title="Scan grades from an image">📷 Scan Grades</button>
+                    <div class="download-buttons">
+                        <button id="downloadBtn" style="display: none;" onclick="downloadCSV()" title="Export as CSV file">📄 CSV</button>
+                        <button id="pdfBtn" style.display="none;" onclick="downloadPDF()" title="Export as PDF file">📄 PDF</button>
+                    </div>
+                </div>
+            </div>
             <!-- Grade Table-->
+            <div id="grade-table-card" class="grade-table-card">
             <div class="table-wrapper">
                 <table id="gradeTable">
     <thead>
@@ -246,8 +249,12 @@
     </tfoot>
 </table>
             </div>
-            <div id="result"></div>
-            <div id="error" class="error"></div>
+            </div>
+            <div class="grades-footer">
+                <div id="error" class="error"></div>
+                <button id="calculate">Calculate Averages</button>
+                <div id="result"></div>
+            </div>
         </section>
 
         <!-- Assistant Section (now hidden by default, accessible via floating chat) -->
@@ -523,46 +530,44 @@
         <!-- Contact Section (hidden by default) -->
         <section id="contact-section" class="contact-section" style="display: none;">
             <h1>Contact Us</h1>
+            <p class="contact-intro">Have a question, feedback, or need support? We'd love to hear from you!</p>
             
             <div class="contact-content">
-                <div class="contact-card">
-                    <h3>📝 Send Us a Message</h3>
+                <!-- Left Column: Form -->
+                <div class="contact-form-container">
                     <form class="contact-form" id="contactForm">
-                        <label for="contactName">Name:</label>
-                        <input type="text" id="contactName" required>
-                        
-                        <label for="contactEmail">Email:</label>
-                        <input type="email" id="contactEmail" required>
-                        
-                        <label for="contactSubject">Subject:</label>
-                        <input type="text" id="contactSubject" required>
-                        
-                        <label for="contactMessage">Message:</label>
-                        <textarea id="contactMessage" required></textarea>
-                        
+                        <div class="form-group">
+                            <label for="contactName">Name</label>
+                            <input type="text" id="contactName" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactEmail">Email</label>
+                            <input type="email" id="contactEmail" placeholder="your.email@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactSubject">Subject</label>
+                            <input type="text" id="contactSubject" placeholder="e.g., Feedback on OCR" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactMessage">Message</label>
+                            <textarea id="contactMessage" placeholder="Tell us what's on your mind..." required></textarea>
+                        </div>
                         <button type="submit" class="submit-btn">Send Message</button>
                     </form>
                 </div>
-                
-                <div class="contact-card">
-                    <h3>📞 Direct Contact</h3>
-                    <div class="contact-info">
-                        <ul>
-                            <li><strong>Email:</strong> <a href="mailto:mr.suah19@gmail.com">Support Team</a></li>
-                            <li><strong>Phone:</strong> <a href="tel:0778662590">+231 (778) 662-590</a></li>
-                        </ul>
-                        <p class="small-text">We respond within 24-48 hours!</p>
+                <!-- Right Column: Info -->
+                <div class="contact-info-container">
+                    <div class="contact-info-card">
+                        <h3>Direct Contact</h3>
+                        <p class="contact-info-item">📧 <a href="mailto:mr.suah19@gmail.com">mr.suah19@gmail.com</a></p>
+                        <p class="contact-info-item">📞 <a href="tel:0778662590">+231 (778) 662-590</a></p>
+                        <p class="small-text">We typically respond within 24-48 hours.</p>
                     </div>
-                </div>
-                
-                <div class="contact-card">
-                    <h3>🔗 Quick Links</h3>
-                    <div class="quick-links">
-                        <ul>
-                            <li><a href="#" onclick="showSection('help')">Help & FAQ</a></li>
-                            <li><a href="#" onclick="showSection('profile')">My Profile</a></li>
-                            <li><a href="#" onclick="showSection('settings')">App Settings</a></li>
-                        </ul>
+                    <div class="contact-info-card">
+                        <h3>Looking for something?</h3>
+                        <a href="#" onclick="showSection('help')" class="quick-link-btn">Help & FAQ</a>
+                        <a href="#" onclick="showSection('profile')" class="quick-link-btn">My Profile</a>
+                        <a href="#" onclick="showSection('settings')" class="quick-link-btn">App Settings</a>
                     </div>
                 </div>
             </div>
