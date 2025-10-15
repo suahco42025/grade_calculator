@@ -395,12 +395,79 @@ function generateQRForSession(session) {
     });
 }
 
+// NEW: OCR Camera Capture Functions
+let ocrVideoStream = null;
+
+function startOcrCamera() {
+    const modal = document.getElementById('ocrCameraModal');
+    const status = document.getElementById('ocrCameraStatus');
+    modal.style.display = 'flex'; // Use flex for centering
+    status.textContent = 'Requesting camera access...';
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(stream => {
+            ocrVideoStream = stream;
+            const video = document.getElementById('ocrCameraVideo');
+            video.srcObject = stream;
+            video.play();
+            status.textContent = 'Camera ready. Press Capture.';
+        })
+        .catch(err => {
+            console.error('Camera Error:', err);
+            status.textContent = 'Camera access denied. Please enable permissions in your browser settings.';
+        });
+}
+
+function captureOcrImage() {
+    const video = document.getElementById('ocrCameraVideo');
+    const canvas = document.getElementById('ocrPreprocessCanvas'); // Reuse the hidden canvas
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageDataUrl = canvas.toDataURL('image/jpeg');
+
+    // Now, use this image data for OCR
+    resetOcrSection(); // Clear previous results
+    document.getElementById('ocrPreviewImage').src = imageDataUrl;
+    document.getElementById('ocrPreviewContainer').style.display = 'block';
+
+    // Create a mock reader object for runOcr
+    const mockReader = { result: imageDataUrl };
+    runOcr(mockReader);
+
+    // Close the camera modal and switch to the OCR section
+    closeOcrCameraModal();
+    showSection('ocr');
+}
+
+function closeOcrCameraModal() {
+    const modal = document.getElementById('ocrCameraModal');
+    modal.style.display = 'none';
+    if (ocrVideoStream) {
+        ocrVideoStream.getTracks().forEach(track => track.stop());
+        ocrVideoStream = null;
+    }
+}
+
+document.getElementById('ocrCameraModal').addEventListener('click', function(e) {
+    if (e.target === this) closeOcrCameraModal();
+});
+
 // NEW: Advanced OCR Functions
 function setupOcrDropZone() {
     const dropZone = document.getElementById('ocrDropZone');
     const fileInput = document.getElementById('ocrFileInput');
 
-    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('click', (e) => {
+        // Only trigger file input if the click is not on a button.
+        // This prevents the file dialog from opening when "Take a Picture" is clicked.
+        if (e.target.tagName !== 'BUTTON') {
+            fileInput.click();
+        }
+    });
 
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -429,7 +496,7 @@ function setupOcrDropZone() {
 function handleOcrFileSelect(event) {
     const file = event.target.files[0];
     if (!file || !file.type.startsWith('image/')) {
-        alert('Please select an image file.');
+        showToast('Please select a valid image file.', 'error');
         return;
     }
 
@@ -518,11 +585,11 @@ async function runOcr(reader) {
 
 function parseAndAddOcrGrades() {
     const text = document.getElementById('ocrResultText').value;
-    if (!text.trim()) return alert('No text to parse. Please run OCR first.');
+    if (!text.trim()) return showToast('No text to parse. Please run OCR first.', 'error');
 
     const lines = text.split('\n').filter(line => line.trim());
     addParsedGrades(lines);
-    alert('Grades parsed from text! Review the table and click "Calculate Averages".');
+    showToast('Grades parsed! Review the table and calculate averages.', 'success');
     showSection('grades');
 }
 
@@ -582,6 +649,31 @@ function updateMetaForSection(section) {
     }
 }
 
+// NEW: Toast Notification Function
+function showToast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        info: 'ℹ️'
+    };
+    
+    toast.innerHTML = `<span class="toast-icon">${icons[type] || ''}</span> ${message}`;
+    container.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Animate out and remove
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, duration);
+}
+
 // Firebase Auth Functions
 function signUpWithEmail(email, password, name) {
     const { createUserWithEmailAndPassword, updateProfile } = window;
@@ -589,18 +681,20 @@ function signUpWithEmail(email, password, name) {
     createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-            return updateProfile(user, { displayName: name });
+            return updateProfile(user, { displayName: name || email.split('@')[0] });
         })
         .then(() => {
-            alert('Account created successfully! You are now logged in.');
+            showToast('Account created! You are now logged in.', 'success');
             document.getElementById('authForm').reset();
             document.getElementById('authError').textContent = '';
             loadProfile();
-            closeMobileNav(); // NEW: Close nav after auth
         })
         .catch((error) => {
             console.error('Sign Up Error:', error);
             document.getElementById('authError').textContent = error.message;
+        })
+        .finally(() => {
+            updateAuthButtonState(false);
         });
 }
 
@@ -609,15 +703,17 @@ function signInWithEmail(email, password) {
     const auth = window.auth;
     signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            alert('Logged in successfully!');
+            showToast('Logged in successfully!', 'success');
             document.getElementById('authForm').reset();
             document.getElementById('authError').textContent = '';
             loadProfile();
-            closeMobileNav(); // NEW: Close nav after auth
         })
         .catch((error) => {
             console.error('Sign In Error:', error);
             document.getElementById('authError').textContent = error.message;
+        })
+        .finally(() => {
+            updateAuthButtonState(false);
         });
 }
 
@@ -625,11 +721,10 @@ function signOutUser() {
     const { signOut } = window;
     const auth = window.auth;
     signOut(auth).then(() => {
-        alert('Logged out successfully!');
+        showToast('You have been logged out successfully.', 'info');
         currentUser = null;
         updateAuthUI();
         showSection('grades');
-        closeMobileNav(); // NEW: Close nav after logout
     }).catch((error) => {
         console.error('Sign Out Error:', error);
     });
@@ -651,44 +746,66 @@ function initAuth() {
 }
 
 function updateAuthUI() {
-    const authSection = document.getElementById('authSection');
+    const loginSection = document.getElementById('login-section');
+    const mainApp = document.getElementById('main-app');    
     const profileInfo = document.getElementById('profileInfo');
     const navPic = document.getElementById('navProfilePic');
     const dropdown = document.getElementById('profileDropdown');
 
     if (currentUser) {
-        authSection.classList.remove('active');
-        profileInfo.classList.add('active');
+        // User is logged in: show app, hide login screen
+        loginSection.style.display = 'none';
+        mainApp.style.display = 'block';        
+        profileInfo.classList.add('active'); // Show profile details
         navPic.src = currentUser.photoURL || 'Suahco4.png';
         dropdown.innerHTML = `
             <a href="#" onclick="showSection('profile')">Edit Profile</a>
             <a href="#" onclick="signOutUser()">Logout</a>
         `;
     } else {
-        authSection.classList.add('active');
-        profileInfo.classList.remove('active');
+        // User is logged out: show login screen, hide app. This is the default state.
+        loginSection.style.display = 'flex';
+        mainApp.style.display = 'none';
+        profileInfo.classList.remove('active'); // Hide profile details
         navPic.src = 'Suahco4.png';
         dropdown.innerHTML = `
             <a href="#" onclick="showSection('profile')">Login</a>
         `;
     }
-    // Ensure dropdown is hidden after update (prevents flash on refresh)
-    dropdown.classList.remove('active');
-    // FIXED: Close mobile nav after UI update
-    closeMobileNav();
 }
 
 // Toggle between sign up/login form
 function toggleAuthForm() {
     const submitBtn = document.getElementById('authSubmit');
     const toggleBtn = document.getElementById('toggleAuth');
-    if (submitBtn.textContent === 'Sign Up') {
-        submitBtn.textContent = 'Login';
-        toggleBtn.textContent = 'Or Sign Up Instead';
+    const nameGroup = document.getElementById('nameInputGroup');
+    const title = document.getElementById('authTitle');
+    const subtitle = document.getElementById('authSubtitle');
+    const toggleText = toggleBtn.parentElement;
+
+    if (submitBtn.textContent.includes('Create')) { // Currently in Sign Up mode
+        submitBtn.textContent = 'Log In';
+        nameGroup.style.display = 'none';
+        title.textContent = 'Welcome Back!';
+        subtitle.textContent = 'Log in to access your saved data.';
+        toggleText.innerHTML = `Don't have an account? <button type="button" id="toggleAuth" class="auth-toggle-btn">Sign Up</button>`;
     } else {
-        submitBtn.textContent = 'Sign Up';
-        toggleBtn.textContent = 'Or Login Instead';
+        submitBtn.textContent = 'Create Account';
+        nameGroup.style.display = 'block';
+        title.textContent = 'Create an Account';
+        subtitle.textContent = 'to save sessions and track your progress.';
+        toggleText.innerHTML = `Already have an account? <button type="button" id="toggleAuth" class="auth-toggle-btn">Log In</button>`;
     }
+    // Re-bind the new button
+    document.getElementById('toggleAuth').addEventListener('click', toggleAuthForm);
+}
+
+// NEW: Update auth button state during submission
+function updateAuthButtonState(isSubmitting) {
+    const button = document.getElementById('authSubmit');
+    button.disabled = isSubmitting;
+    const originalText = button.textContent.includes('Create') ? 'Create Account' : 'Log In';
+    button.textContent = isSubmitting ? 'Processing...' : originalText;
 }
 
 // Function to highlight scores below threshold in red
@@ -1374,51 +1491,50 @@ function generateStats() {
 }
 
 // UPDATED: Contact functions (with fixed auto-reply)
-function submitContactForm(e) {
+async function submitContactForm(e) {
     e.preventDefault();
     const name = document.getElementById('contactName').value.trim();
     const email = document.getElementById('contactEmail').value.trim();
     const subject = document.getElementById('contactSubject').value.trim();
     const message = document.getElementById('contactMessage').value.trim();
-
+    
     if (!name || !email || !subject || !message) {
         alert('Please fill in all fields.');
         return;
     }
-
-    // Log for debugging
-    console.log('Contact Form Submitted:', { name, email, subject, message });
-
-    // Send main contact email via EmailJS
-    emailjs.send('service_t4jdpwc', 'template_bq7h8n6', {
-        name: name,
-        email: email,
-        subject: subject,
-        message: message
-    }).then((result) => {
-        console.log('Main EmailJS Success:', result.text);
-
-        // FIXED: Send dedicated auto-reply to user (only if main succeeds)
-        console.log('Sending auto-reply...');
-        emailjs.send('service_t4jdpwc', 'template_awyrou5', {  // Dedicated auto-reply template
+    
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Sending...';
+    
+    try {
+        // Step 1: Send the main contact email to yourself
+        await emailjs.send('service_t4jdpwc', 'template_bq7h8n6', {
+            name: name,
+            email: email,
+            subject: subject,
+            message: message
+        });
+        console.log('Main contact email sent successfully.');
+        
+        // Step 2: Send the auto-reply to the user
+        await emailjs.send('service_t4jdpwc', 'template_awyrou5', {
             to_name: name,
             to_email: email,
             reply_subject: `Re: ${subject} - Thanks for reaching out!`,
             reply_message: `Hi ${name}! We received your message about "${subject}". Our team will review it within 24-48 hours. In the meantime, check our Help section for quick tips. Best, Grade Calculator Team`
-        }).then((replyResult) => {
-            console.log('Auto-Reply Success:', replyResult.text);
-        }).catch((replyError) => {
-            console.warn('Auto-Reply failed (non-critical):', replyError);
-            // ENHANCED: Optional user notification on partial failure
-            // alert('Message sent, but auto-reply delayed—check spam folder!');
         });
-
+        console.log('Auto-reply sent successfully.');
+        
         alert('Message sent successfully! Check your email for an auto-reply confirmation. We\'ll get back to you soon.');
         document.getElementById('contactForm').reset();
-    }, (error) => {
-        console.error('Main EmailJS Error:', error);
-        alert('Failed to send message. Please try again or email us directly.');
-    });
+    } catch (error) {
+        console.error('EmailJS Error:', error);
+        alert(`Failed to send message. Please try again or email us directly. Error: ${error.text || 'Unknown error'}`);
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Send Message';
+    }
 }
 
 // FIXED: Show section (handles all toggles + SEO meta updates) - Closes mobile nav
@@ -1479,16 +1595,23 @@ function showSection(section) {
 
 // Toggle accordion sections
 function toggleAccordion(header) {
-    const content = header.nextElementSibling;
-    const isActive = content.classList.contains('active');
+    const contentWrapper = header.nextElementSibling;
+    const contentInner = contentWrapper.querySelector('div'); // The div with the actual content
+    const isActive = contentWrapper.classList.contains('active');
     
-    // Close all others
-    document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('active'));
+    // Close all other accordions
+    document.querySelectorAll('.help-card h2').forEach(h => h.classList.remove('active'));
+    document.querySelectorAll('.accordion-content').forEach(c => {
+        if (c !== contentWrapper) {
+            c.classList.remove('active');
+            c.style.padding = '0 20px'; // Collapse padding
+        }
+    });
     
-    // Toggle this one
-    if (!isActive) {
-        content.classList.add('active');
-    }
+    // Toggle the clicked one
+    header.classList.toggle('active', !isActive);
+    contentWrapper.classList.toggle('active', !isActive);
+    contentWrapper.style.padding = isActive ? '0 20px' : '20px'; // Animate padding
 }
 
 // Load saved settings
@@ -1625,9 +1748,12 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const email = document.getElementById('authEmail').value;
         const password = document.getElementById('authPassword').value;
-        const name = document.getElementById('userName').value || email.split('@')[0];
+        const name = document.getElementById('signupName').value;
         const submitBtn = document.getElementById('authSubmit');
-        if (submitBtn.textContent === 'Sign Up') {
+
+        updateAuthButtonState(true); // Disable button
+
+        if (submitBtn.textContent.includes('Create')) {
             signUpWithEmail(email, password, name);
         } else {
             signInWithEmail(email, password);

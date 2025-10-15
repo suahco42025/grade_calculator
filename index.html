@@ -120,8 +120,36 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Fixed nav moved outside container -->
-    <nav class="navbar">
+    <!-- NEW: Mandatory Login Section (visible by default) -->
+    <section id="login-section" class="login-section">
+        <div class="auth-card">
+            <h2 id="authTitle">Create an Account</h2>
+            <p id="authSubtitle">to save sessions and track your progress.</p>
+            <form class="auth-form" id="authForm">
+                <div class="form-group" id="nameInputGroup">
+                    <label for="signupName">Full Name</label>
+                    <input type="text" id="signupName" placeholder="e.g., Alex Doe">
+                </div>
+                <div class="form-group">
+                    <label for="authEmail">Email Address</label>
+                    <input type="email" id="authEmail" placeholder="your.email@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="authPassword">Password</label>
+                    <input type="password" id="authPassword" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" required>
+                </div>
+                <button type="submit" id="authSubmit" class="submit-btn">Create Account</button>
+            </form>
+            <div class="auth-toggle">
+                <p>Already have an account? <button type="button" id="toggleAuth" class="auth-toggle-btn">Log In</button></p>
+            </div>
+            <div id="authError" class="auth-error"></div>
+        </div>
+    </section>
+
+    <!-- NEW: Main App Wrapper (hidden by default) -->
+    <div id="main-app" style="display: none;">
+        <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
                 <a href="#" onclick="showSection('grades')">Grade Calculator</a>
@@ -147,9 +175,9 @@
                 <span></span>
             </div>
         </div>
-    </nav>
+        </nav>
 
-    <!-- UPDATED: Floating Chat Toggle Button - NOW WITH ONLY suahco4.png (no background) -->
+        <!-- UPDATED: Floating Chat Toggle Button - NOW WITH ONLY suahco4.png (no background) -->
     <button class="floating-chat-toggle" onclick="toggleFloatingChat()" title="Chat with Suahco Assistant">
         <img src="Suahco4.png" alt="Suahco Assistant">
     </button>
@@ -173,6 +201,9 @@
         </div>
     </div>
 
+    <!-- NEW: Toast Notification Container -->
+    <div id="toast-container"></div>
+
     <!-- NEW: QR Scan Modal -->
     <div id="qrModal" class="qr-modal">
         <div class="qr-modal-content">
@@ -185,10 +216,22 @@
         </div>
     </div>
 
-    <!-- NEW: Hidden file input for OCR -->
+    <!-- NEW: OCR Camera Modal -->
+    <div id="ocrCameraModal" class="qr-modal">
+        <div class="qr-modal-content">
+            <span class="qr-close" onclick="closeOcrCameraModal()">&times;</span>
+            <h3>📷 Capture Grade Sheet</h3>
+            <p>Position the document in the frame and hold steady.</p>
+            <video id="ocrCameraVideo" autoplay playsinline></video>
+            <div id="ocrCameraStatus" class="qr-status">Loading camera...</div>
+            <button onclick="captureOcrImage()" class="small-btn">Capture Image</button>
+            <button onclick="closeOcrCameraModal()" class="small-btn secondary-btn">Cancel</button>
+        </div>
+    </div>
 
-    <div class="container">
-        <!-- Wrapped: Grades Section -->
+    <!-- NEW: Hidden file input for OCR -->
+        <div class="container">
+            <!-- Wrapped: Grades Section -->
         <section id="grades-section" class="grades-section active">
             <div class="grades-header">
                 <h1>Grade Matrix</h1>
@@ -280,7 +323,7 @@
         <!-- NEW: Advanced OCR Section -->
         <section id="ocr-section" class="ocr-section" style="display: none;">
             <h1>Advanced OCR - Scan Grades</h1>
-            <canvas id="ocrPreprocessCanvas"></canvas> <!-- Hidden canvas for image processing -->
+            <canvas id="ocrPreprocessCanvas" style="display: none;"></canvas> <!-- Hidden canvas for image processing -->
             <div class="ocr-content">
                 <!-- Left Column: Controls -->
                 <div class="ocr-controls">
@@ -289,6 +332,7 @@
                         <p>Drag & Drop an image here</p>
                         <p class="ocr-drop-separator">or</p>
                         <button type="button" class="ocr-select-btn" onclick="document.getElementById('ocrFileInput').click()">Select Image</button>
+                        <button type="button" class="ocr-camera-btn" onclick="startOcrCamera()">Take a Picture</button>
                         <input type="file" id="ocrFileInput" accept="image/*" style="display: none;">
                     </div>
                     <div class="ocr-instructions">
@@ -318,46 +362,49 @@
 
         <!-- Help Section (hidden by default) -->
         <section id="help-section" class="help-section" style="display: none;">
-            <h1>Help & Guide</h1>
+            <div class="help-header">
+                <h1>Help & Guide</h1>
+                <p>Find answers to common questions and learn how to use the tool effectively.</p>
+            </div>
             
             <div class="help-content">
                 <div class="help-card">
-                    <h2 onclick="toggleAccordion(this)">📖 Introduction</h2>
+                    <h2 onclick="toggleAccordion(this)"><span>📖</span> Introduction <span class="accordion-icon"></span></h2>
                     <div class="accordion-content">
                         <p>Welcome to <strong>Grade Matrix Calculator</strong>! This tool helps you track grades across periods and exams, calculate subject/period averages, and export reports. It's designed for students and teachers—simple, fast, and mobile-friendly.</p>
                     </div>
                 </div>
                 
                 <div class="help-card">
-                    <h2 onclick="toggleAccordion(this)">🚀 How to Use</h2>
+                    <h2 onclick="toggleAccordion(this)"><span>🚀</span> How to Use <span class="accordion-icon"></span></h2>
                     <div class="accordion-content">
                         <ol>
                             <li><strong>Add Subjects</strong>: Click "Add Subject" or use the pre-loaded ones (e.g., Mathematics). Edit names as needed.</li>
                             <li><strong>Enter Scores</strong>: Fill in numbers (0-100) for each period/exam. Scores below 70 auto-highlight in red!</li>
                             <li><strong>Calculate</strong>: Click "Calculate Averages" (<em>Pro Tip: Ctrl+Enter shortcut!</em>) to compute subject averages, period averages, and overall grade.</li>
                             <li><strong>Download</strong>: After calculating, use "Download CSV" (for Excel) or "Download PDF" (for printing). Files include only periods with data.</li>
-                            <li><strong>Remove Rows</strong>: Click "Remove" next to any subject.</li>
+                            <li><strong>Remove Rows</strong>: Click the "Remove" button next to any subject.</li>
                         </ol>
-                        <p><em>Tip:</em> Empty scores are skipped in averages. Save your work—data persists until page refresh.</p>
+                        <p><em>Tip:</em> Empty scores are skipped in averages. Your data is saved in your browser automatically.</p>
                     </div>
                 </div>
                 
                 <div class="help-card">
-                    <h2 onclick="toggleAccordion(this)">✨ Features</h2>
+                    <h2 onclick="toggleAccordion(this)"><span>✨</span> Features <span class="accordion-icon"></span></h2>
                     <div class="accordion-content">
                         <ul>
                             <li><strong>Real-Time Highlights</strong>: Low scores (&lt;70) turn red instantly.</li>
                             <li><strong>Dynamic Table</strong>: Add/remove subjects on-the-fly; sticky headers for scrolling.</li>
-                            <li><strong>Averages</strong>: Subject (per row), Period (columns), Overall (grand).</li>
-                            <li><strong>Exports</strong>: CSV for data analysis; PDF for reports (landscape format, filtered to entered periods).</li>
-                            <li><strong>Responsive</strong>: Works on phone/tablet with hamburger menu.</li>
+                            <li><strong>Comprehensive Averages</strong>: Calculates averages for each subject, period, and semester, plus a final overall average.</li>
+                            <li><strong>Professional Exports</strong>: Download your grade matrix as a clean CSV or a formatted PDF report.</li>
+                            <li><strong>User Accounts</strong>: Sign up to save your grade sessions and access them from anywhere.</li>
                             <li><strong>Validation</strong>: Errors shown for invalid inputs (e.g., non-numbers).</li>
                         </ul>
                     </div>
                 </div>
                 
                 <div class="help-card">
-                    <h2 onclick="toggleAccordion(this)">🔧 Troubleshooting</h2>
+                    <h2 onclick="toggleAccordion(this)"><span>🔧</span> Troubleshooting <span class="accordion-icon"></span></h2>
                     <div class="accordion-content">
                         <dl>
                             <dt>No averages showing?</dt>
@@ -377,7 +424,7 @@
                 </div>
                 
                 <div class="help-card">
-                    <h2 onclick="toggleAccordion(this)">📧 Contact & More</h2>
+                    <h2 onclick="toggleAccordion(this)"><span>📧</span> Contact & More <span class="accordion-icon"></span></h2>
                     <div class="accordion-content">
                         <p>Questions? Use the <a href="#" onclick="showSection('contact')">Contact Form</a> or email <a href="mailto:mr.suah19@gmail.com">mr.suah19@gmail.com</a>.</p>
                         <p><em>Last updated:</em> October 13, 2025</p>
@@ -390,71 +437,77 @@
 
         <!-- Settings Section (hidden by default) -->
         <section id="settings-section" class="settings-section" style="display: none;">
-            <h1>Settings</h1>
+            <div class="settings-header">
+                <h1>Application Settings</h1>
+                <p>Customize your Grade Calculator experience.</p>
+            </div>
             
             <div class="settings-content">
                 <div class="setting-card">
-                    <h3>🌙 Theme</h3>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
-                        <span class="toggle-slider"></span>
-                        Dark Mode
-                    </label>
+                    <h3>🌙 Appearance</h3>
+                    <div class="setting-item">
+                        <label for="themeToggle">Dark Mode</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                 </div>
                 
                 <div class="setting-card">
                     <h3>⚠️ Low Score Threshold</h3>
-                    <p>Highlight scores below this value in red (current: <span id="currentThreshold">70</span>).</p>
-                    <input type="number" id="thresholdInput" value="70" min="0" max="100" onchange="updateThreshold()">
-                    <button onclick="applyThreshold()" class="small-btn">Apply</button>
+                    <p>Highlight scores below this value. Current: <strong id="currentThreshold">70</strong></p>
+                    <div class="setting-input-group">
+                        <input type="number" id="thresholdInput" value="70" min="0" max="100" onchange="updateThreshold()">
+                        <button onclick="applyThreshold()" class="small-btn">Apply</button>
+                    </div>
                 </div>
                 
-                <!-- NEW: GPA Toggle -->
                 <div class="setting-card">
                     <h3>📊 GPA Mode</h3>
-                    <p>Switch between percentage (%) and GPA (4.0 scale) for calculations.</p>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="gpaToggle" onchange="toggleGPAScale()">
-                        <span class="toggle-slider"></span>
-                        Enable GPA (4.0)
-                    </label>
+                    <div class="setting-item">
+                        <label for="gpaToggle">Enable GPA (4.0 Scale)</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="gpaToggle" onchange="toggleGPAScale()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                 </div>
                 
                 <div class="setting-card">
                     <h3>📚 Default Subjects</h3>
-                    <p>Comma-separated list (loads on page refresh).</p>
-                    <input type="text" id="defaultSubjectsInput" value="Mathematics,English,Science,History" placeholder="e.g., Math,English,Physics">
-                    <button onclick="saveDefaultSubjects()" class="small-btn">Save</button>
+                    <p>Comma-separated list for new tables.</p>
+                    <div class="setting-input-group">
+                        <input type="text" id="defaultSubjectsInput" value="Mathematics,English,Science,History" placeholder="e.g., Math,English,Physics">
+                        <button onclick="saveDefaultSubjects()" class="small-btn">Save</button>
+                    </div>
                 </div>
                 
-                <!-- NEW: School Name Card -->
                 <div class="setting-card">
                     <h3>🏫 School Information</h3>
-                    <p>Enter your school's name to include it in PDF reports.</p>
-                    <input type="text" id="schoolNameInput" placeholder="e.g., University of Excellence" style="width: 250px;">
-                    <button onclick="saveSchoolName()" class="small-btn">Save</button>
-                </div>
-
-                <!-- NEW: Semester Reset Card -->
-                <div class="setting-card">
-                    <h3>🔄 Semester Management</h3>
-                    <button id="resetSemesters" class="clear-btn" style="background-color: #f39c12;">Reset All Semester Scores</button>
-                    <p class="small-text">Clears all entered scores from the table but keeps the subject names.</p>
+                    <p>Set a school name for PDF report titles.</p>
+                    <div class="setting-input-group">
+                        <input type="text" id="schoolNameInput" placeholder="e.g., University of Excellence">
+                        <button onclick="saveSchoolName()" class="small-btn">Save</button>
+                    </div>
                 </div>
 
                 <div class="setting-card">
                     <h3>📤 Export Options</h3>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="dateInFilename" checked onchange="toggleDateInExport()">
-                        <span class="toggle-slider"></span>
-                        Include Date in Filenames
-                    </label>
+                    <div class="setting-item">
+                        <label for="dateInFilename">Include Date in Filenames</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="dateInFilename" checked onchange="toggleDateInExport()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                 </div>
                 
-                <div class="setting-card">
+                <div class="setting-card danger-zone">
                     <h3>🗑️ Data Management</h3>
-                    <button onclick="clearAllData()" class="clear-btn">Clear All Data & Reset</button>
-                    <p class="small-text">Resets table to default subjects (no score loss if saved externally).</p>
+                    <p>These actions cannot be undone.</p>
+                    <button id="resetSemesters" class="clear-btn warning-btn">Reset All Scores</button>
+                    <button onclick="clearAllData()" class="clear-btn">Clear All Data & Reset Table</button>
                 </div>
             </div>
             
@@ -463,63 +516,56 @@
 
         <!-- Profile Section (hidden by default) -->
         <section id="profile-section" class="profile-section" style="display: none;">
-            <h1>Profile</h1>
+            <div class="profile-header">
+                <h1>My Profile</h1>
+                <p>Manage your account, view stats, and access saved sessions.</p>
+            </div>
             
             <div class="profile-content">
-                <!-- Auth Section (shown if not logged in) -->
-                <div id="authSection" class="profile-card auth-section active">
-                    <h3>👤 Sign Up / Login</h3>
-                    <form class="auth-form" id="authForm">
-                        <input type="text" id="signupName" placeholder="Full Name (optional)">
-                        <input type="email" id="authEmail" placeholder="Email" required>
-                        <input type="password" id="authPassword" placeholder="Password" required>
-                        <button type="submit" id="authSubmit" class="small-btn">Sign Up</button>
-                    </form>
-                    <div class="auth-toggle">
-                        <button type="button" id="toggleAuth" class="auth-toggle-btn">Or Login Instead</button>
-                    </div>
-                    <div id="authError" class="auth-error"></div>
-                </div>
+                <!-- Auth Section has been moved to the top-level login screen -->
 
                 <!-- Profile Info (shown if logged in) -->
-                <div id="profileInfo" class="profile-info">
-                    <div class="profile-card">
-                        <h3>👤 User Information</h3>
-                        <img id="profilePicPreview" src="Suahco4.png" alt="User profile picture preview" class="profile-pic-preview">
-                        <input type="file" id="profilePicUpload" accept="image/*" onchange="handlePicUpload(event)" style="display: none;">
-                        <p><label>Name: <input type="text" id="userName" placeholder="Your Name"></label></p>
-                        <p><label>Email: <input type="email" id="userEmail" placeholder="your@email.com" disabled></label></p>
-                        <button onclick="saveProfile()" class="small-btn">Save Profile</button>
-                    </div>
-                    
-                    <div class="profile-card">
-                        <h3>💾 Saved Sessions</h3>
-                        <p>Save your current grades to load later. New: Generate QR codes for quick scanning!</p>
-                        <button onclick="saveSession()" class="small-btn">Save Current Session & Get QR</button>
-                        <!-- NEW: Scan Button -->
-                        <button onclick="generateCurrentSessionQR()" class="small-btn" style="background-color: #1abc9c;">Generate QR for Current Data</button>
-                        <button onclick="startQRScan()" class="small-btn" style="background-color: #9b59b6; margin-left: 10px;">📱 Scan QR to Load Session</button>
-                        <ul id="sessionList" class="session-list"></ul>
-                    </div>
-                    
-                    <div class="profile-card">
-                        <h3>📊 Quick Stats & Visualizations</h3>
-                        <div id="statsGrid" class="stats-grid">
-                            <!-- Stats populated dynamically -->
+                <div id="profileInfo" class="profile-info-grid">
+                    <!-- Left Column: User Card -->
+                    <div class="profile-user-card">
+                        <div class="profile-pic-container">
+                            <img id="profilePicPreview" src="Suahco4.png" alt="User profile picture preview" class="profile-pic-preview">
+                            <button class="change-pic-btn" onclick="document.getElementById('profilePicUpload').click()" title="Change profile picture">📷</button>
+                            <input type="file" id="profilePicUpload" accept="image/*" onchange="handlePicUpload(event)" style="display: none;">
                         </div>
-                        <!-- NEW: Chart Containers -->
-                        <div class="chart-container">
-                            <canvas id="subjectBarChart"></canvas>
+                        <h2 id="profileDisplayName"></h2>
+                        <p id="profileDisplayEmail"></p>
+                        <div class="profile-edit-form">
+                            <input type="text" id="userName" placeholder="Update display name">
+                            <button onclick="saveProfile()" class="small-btn">Save</button>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="gradePieChart"></canvas>
-                        </div>
+                        <p class="small-text">Your email is managed by your login provider.</p>
                     </div>
-                    
-                    <div class="profile-card">
-                        <h3>🚪 Account Actions</h3>
-                        <button onclick="logout()" class="clear-btn">Logout</button>
-                        <p class="small-text">Clears session and logs you out.</p>
+                    <!-- Right Column: Detail Cards -->
+                    <div class="profile-details-cards">
+                        <div class="profile-card">
+                            <h3>💾 Saved Sessions</h3>
+                            <p>Save your current grades to load later or generate a QR code for quick scanning.</p>
+                            <div class="session-controls">
+                                <button onclick="saveSession()" class="small-btn">Save & Get QR</button>
+                                <button onclick="generateCurrentSessionQR()" class="small-btn secondary-btn">Generate QR Only</button>
+                                <button onclick="startQRScan()" class="small-btn secondary-btn">📱 Scan to Load</button>
+                            </div>
+                            <ul id="sessionList" class="session-list"></ul>
+                        </div>
+                        <div class="profile-card">
+                            <h3>📊 Quick Stats & Visualizations</h3>
+                            <div id="statsGrid" class="stats-grid"></div>
+                            <div class="charts-wrapper">
+                                <div class="chart-container"><canvas id="subjectBarChart"></canvas></div>
+                                <div class="chart-container"><canvas id="gradePieChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div class="profile-card danger-zone">
+                            <h3>🚪 Account Actions</h3>
+                            <p>Logging out will clear your current session from the device.</p>
+                            <button onclick="logout()" class="clear-btn">Logout</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -731,7 +777,8 @@
             
             <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
         </section>
-    </div>
+        </div>
+    </div> <!-- End of #main-app wrapper -->
 
     <footer>
         <div class="footer-container">
