@@ -456,7 +456,36 @@ document.getElementById('ocrCameraModal').addEventListener('click', function(e) 
     if (e.target === this) closeOcrCameraModal();
 });
 
-// NEW: Advanced OCR Functions
+// NEW: Convert PDF to image (basic stub - warns user for now; expand with pdf.js if needed)
+async function handlePDFFile(file) {
+    showToast('PDF detected! Convert to image first (e.g., screenshot or use online tool like ilovepdf.com).', 'info');
+    // FUTURE: Integrate pdf.js for client-side conversion
+    // For now, reject and suggest manual conversion
+    throw new Error('PDF not supported yet—please convert to JPG/PNG.');
+}
+
+// NEW: Enhanced file validation (allows ANY file, but processes only images)
+function isValidOcrFile(file) {
+    const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/heic'];
+    const isImage = imageTypes.includes(file.type) || file.type.startsWith('image/');
+    const isPDF = file.type === 'application/pdf';
+    return isImage || isPDF;
+}
+
+// NEW: Get image from file (handles DataURL or canvas for PDFs/images)
+async function getImageFromFile(file) {
+    if (file.type === 'application/pdf') {
+        await handlePDFFile(file); // Throws error with guidance
+    }
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// UPDATED: Enhanced drop zone with better file validation
 function setupOcrDropZone() {
     const dropZone = document.getElementById('ocrDropZone');
     const fileInput = document.getElementById('ocrFileInput');
@@ -469,47 +498,57 @@ function setupOcrDropZone() {
         }
     });
 
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.add('dragover');
+    // Drag & drop for any file
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
     });
 
-    dropZone.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('dragover');
-    });
-
+    dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
         dropZone.classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        if (files.length) {
-            fileInput.files = files;
-            handleOcrFileSelect({ target: fileInput });
+        const files = Array.from(e.dataTransfer.files);
+        const validFiles = files.filter(isValidOcrFile);
+        if (validFiles.length === 0) {
+            showToast('Drop valid images (JPG, PNG, etc.) or PDFs (convert first).', 'error');
+            return;
         }
+        if (validFiles.length > 1) {
+            showToast('Processing first file only (multi-file coming soon).', 'info');
+        }
+        // Create fake FileList for single file
+        const dt = new DataTransfer();
+        dt.items.add(validFiles[0]);
+        fileInput.files = dt.files;
+        handleOcrFileSelect({ target: fileInput });
     });
 }
 
 function handleOcrFileSelect(event) {
     const file = event.target.files[0];
-    if (!file || !file.type.startsWith('image/')) {
-        showToast('Please select a valid image file.', 'error');
+    if (!file) return;
+
+    if (!isValidOcrFile(file)) {
+        showToast('Unsupported file. Use images (JPG, PNG, GIF, WEBP, BMP, TIFF) or convert PDFs to images.', 'error');
+        event.target.value = '';
         return;
     }
 
-    resetOcrSection(); // Clear previous results
+    showToast(`Loading: ${file.name} (${Math.round(file.size / 1024)} KB)`, 'info');
+    resetOcrSection();
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('ocrPreviewImage').src = e.target.result;
+    getImageFromFile(file).then((imageData) => {
+        console.log('File loaded for OCR:', file.name, file.type);
+        document.getElementById('ocrPreviewImage').src = imageData;
         document.getElementById('ocrPreviewContainer').style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-
-    runOcr(reader);
+        runOcr({ result: imageData }, file.name);
+    }).catch((err) => {
+        console.error('File load error:', err);
+        showToast(err.message, 'error');
+    });
 }
 
 function resetOcrSection() {
@@ -522,94 +561,206 @@ function resetOcrSection() {
     document.getElementById('ocrResultText').value = '';
 }
 
+// UPDATED: Advanced preprocessing (noise reduction + adaptive threshold)
 async function preprocessImage(reader) {
     return new Promise((resolve, reject) => {
         const img = new Image();
+        img.crossOrigin = 'anonymous'; // For external images
         img.onload = () => {
             const canvas = document.getElementById('ocrPreprocessCanvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
+            canvas.width = Math.min(img.width, 1200); // Resize for speed
+            canvas.height = (img.height / img.width) * canvas.width;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // 1. Draw image
-            ctx.drawImage(img, 0, 0);
+            // Grayscale
+            let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                data[i] = data[i + 1] = data[i + 2] = avg;
+            }
+            ctx.putImageData(imageData, 0, 0);
 
-            // 2. Apply filters: grayscale and contrast
-            ctx.filter = 'grayscale(100%) contrast(180%)';
-            ctx.drawImage(canvas, 0, 0); // Re-draw with filter
+            // Sharpen (simple unsharp mask)
+            ctx.filter = 'contrast(150%) brightness(120%)';
+            ctx.drawImage(canvas, 0, 0);
 
-            resolve(canvas);
+            // Adaptive threshold (better for uneven lighting)
+            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            data = imageData.data;
+            const blockSize = 15;
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    // Local threshold (simple Gaussian-like)
+                    let localAvg = 0, count = 0;
+                    for (let dy = -blockSize; dy <= blockSize; dy++) {
+                        for (let dx = -blockSize; dx <= blockSize; dx++) {
+                            const ny = Math.max(0, Math.min(canvas.height - 1, y + dy));
+                            const nx = Math.max(0, Math.min(canvas.width - 1, x + dx));
+                            const ni = (ny * canvas.width + nx) * 4;
+                            localAvg += (data[ni] + data[ni + 1] + data[ni + 2]) / 3;
+                            count++;
+                        }
+                    }
+                    const threshold = localAvg / count;
+                    const isDark = avg < threshold;
+                    data[i] = data[i + 1] = data[i + 2] = isDark ? 0 : 255;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            console.log('Preprocessing complete:', canvas.width + 'x' + canvas.height);
+            resolve(canvas.toDataURL('image/png')); // Return as PNG for quality
         };
         img.onerror = reject;
         img.src = reader.result;
     });
 }
 
-async function runOcr(reader) {
+// UPDATED: Robust OCR with retries and config tweaks
+async function runOcr(reader, filename = 'unknown') {
     const progressDiv = document.getElementById('ocrProgress');
     const progressBar = document.getElementById('ocrProgressBar');
     const progressText = document.getElementById('ocrProgressText');
     const resultText = document.getElementById('ocrResultText');
 
     progressDiv.style.display = 'block';
+    progressText.textContent = 'Preparing image...';
     resultText.value = '';
 
-    try {
-        // 1. Pre-process the image for better accuracy
-        const processedCanvas = await preprocessImage(reader);
+    let retryCount = 0;
+    const maxRetries = 2;
 
-        const { createWorker } = Tesseract;
-        const worker = await createWorker('eng', 1, {
-            logger: m => {
-                if (m.status === 'recognizing text') {
-                    const progress = Math.round(m.progress * 100);
-                    progressBar.style.width = `${progress}%`;
-                    progressText.textContent = `Recognizing... ${progress}%`;
-                } else {
-                    progressText.textContent = m.status.charAt(0).toUpperCase() + m.status.slice(1) + '...';
-                }
+    const attemptOcr = async () => {
+        try {
+            const processedImage = await preprocessImage(reader);
+            progressText.textContent = 'Running OCR engine...';
+
+            const { createWorker } = Tesseract;
+            const worker = await createWorker('eng', 1, {
+                logger: (m) => {
+                    console.log(`OCR (${filename}, attempt ${retryCount + 1}):`, m);
+                    if (m.status === 'recognizing text') {
+                        progressBar.style.width = `${Math.round(m.progress * 100)}%`;
+                        progressText.textContent = `Scanning... ${Math.round(m.progress * 100)}%`;
+                    } else {
+                        progressText.textContent = m.status.replace('_', ' ').toUpperCase() + '...';
+                    }
+                },
+                workerPath: 'https://unpkg.com/tesseract.js@v4.1.1/dist/worker.min.js',
+                langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+            });
+
+            // Optimized config for grades/tables
+            await worker.setParameters({
+                tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz :.,-()[]%',
+                tessedit_pageseg_mode: '3', // Auto (good for mixed text/tables)
+                tessedit_ocr_engine_mode: '1', // LSTM only (more accurate)
+            });
+
+            const { data: { text, confidence } } = await worker.recognize(processedImage);
+            await worker.terminate();
+
+            if (confidence < 50) {
+                throw new Error(`Low confidence (${Math.round(confidence)}%)—image may be blurry.`);
             }
-        });
-        const { data: { text } } = await worker.recognize(processedCanvas);
-        await worker.terminate();
 
-        resultText.value = text;
-        progressText.textContent = 'Recognition Complete!';
-    } catch (err) {
-        console.error('OCR Error:', err);
-        progressText.textContent = 'OCR failed. Please try a clearer image.';
-        progressBar.style.width = '100%';
-        progressBar.style.backgroundColor = '#e74c3c';
-    }
+            if (!text.trim()) {
+                throw new Error('No text found—try a different image.');
+            }
+
+            resultText.value = text;
+            progressText.textContent = `✅ Done! Confidence: ${Math.round(confidence)}%`;
+            progressBar.style.width = '100%';
+            progressBar.style.backgroundColor = '#27ae60';
+
+            showToast(`OCR success! ${text.split('\n').length} lines detected.`, 'success');
+        } catch (err) {
+            console.error('OCR attempt failed:', err);
+            if (retryCount < maxRetries) {
+                retryCount++;
+                progressText.textContent = `Retrying (${retryCount}/${maxRetries})...`;
+                setTimeout(attemptOcr, 500); // Retry after delay
+            } else {
+                progressText.textContent = `❌ Failed after ${maxRetries + 1} tries: ${err.message}`;
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#e74c3c';
+                resultText.value = `Error: ${err.message}\n\nTips:\n- Use clear, straight images\n- Good lighting, no glare\n- Crop to text area\n<button class="small-btn" onclick="document.getElementById('ocrFileInput').click(); resetOcrSection();">Retry File</button>`;
+
+                // Append retry button
+                const btn = document.createElement('button');
+                btn.className = 'small-btn';
+                btn.textContent = 'Retry OCR';
+                btn.onclick = () => document.getElementById('ocrFileInput').click();
+                resultText.parentNode.appendChild(btn);
+            }
+        }
+    };
+
+    attemptOcr();
 }
 
+// UPDATED: Super flexible parsing (handles tables, lists, messy text)
 function parseAndAddOcrGrades() {
-    const text = document.getElementById('ocrResultText').value;
-    if (!text.trim()) return showToast('No text to parse. Please run OCR first.', 'error');
+    const text = document.getElementById('ocrResultText').value.trim();
+    if (!text) return showToast('Run OCR first!', 'error');
 
-    const lines = text.split('\n').filter(line => line.trim());
+    // Clean text: remove extra spaces, normalize
+    const cleanedText = text.replace(/\s+/g, ' ').trim();
+    const lines = cleanedText.split(/[\n\r]+/).map(line => line.trim()).filter(line => line.length > 2);
+
+    if (lines.length === 0) return showToast('No readable lines found.', 'error');
+
+    console.log('Parsing', lines.length, 'lines');
     addParsedGrades(lines);
-    showToast('Grades parsed! Review the table and calculate averages.', 'success');
+    showToast(`Added ${lines.length} potential subjects! Calculate to see results.`, 'success');
     showSection('grades');
 }
 
 function addParsedGrades(lines) {
-    // Basic regex to extract subject and scores (customize as needed)
+    let added = 0, skipped = 0;
     lines.forEach(line => {
-        const match = line.match(/^([a-zA-Z\s]+?)\s+((?:\d{1,3}(?:\.\d+)?\s*)+)$/);
+        // Flexible patterns: "Subject 85 92" or "Math: 90, 85" or "Science (78 92 100)"
+        const patterns = [
+            /^([A-Za-z\s]+?)\s*[:\-]?\s*(\d+(?:\.\d+)?(?:\s*[,;]\s*|\s+)\d+(?:\.\d+)?)+$/i, // Colon/delimited
+            /^([A-Za-z\s]+?)\s+(\d+(?:\.\d+)?(?:\s+|\s*[,;]\s*)+)$/i // Space separated
+        ];
+
+        let match;
+        for (const pattern of patterns) {
+            match = line.match(pattern);
+            if (match) break;
+        }
+
         if (match) {
-            const subject = match[1].trim();
-            const scores = match[2].trim().split(/\s+/).map(s => parseFloat(s)).filter(s => !isNaN(s));
-            if (scores.length > 0) {
+            const subject = match[1].trim().replace(/[^\w\s]/g, '').substring(0, 25); // Clean name
+            const scorePart = match[2].replace(/[,:;]/g, ' ').trim();
+            const scores = scorePart.split(/\s+/).map(s => parseFloat(s)).filter(s => !isNaN(s) && s >= 0 && s <= 120); // Allow slight over 100
+
+            if (scores.length >= 1 && subject) {
                 addSubjectRow(subject);
                 const inputs = document.querySelectorAll('#gradeTable tbody tr:last-child input[type="number"]');
                 scores.slice(0, inputs.length).forEach((score, i) => {
-                    inputs[i].value = score;
+                    inputs[i].value = Math.max(0, Math.min(100, Math.round(score))); // Clamp 0-100
                     updateScoreColor(inputs[i]);
                 });
+                added++;
+            } else {
+                skipped++;
             }
+        } else {
+            skipped++;
         }
     });
+
+    if (added === 0) {
+        showToast(`No matches (${skipped} lines skipped). Edit text manually or retry OCR.`, 'warning');
+    } else {
+        showToast(`${added} subjects added (${skipped} skipped).`, 'success');
+    }
 }
 
  // JS Fallback for www redirect (uncomment if no custom domain)

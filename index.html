@@ -97,17 +97,24 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        // FIXED: Add config check + error logging
+        if (typeof firebaseConfig === 'undefined') {
+            console.error('❌ Firebase config missing! Check firebase-config.js and env vars.');
+            alert('App setup error: Firebase config not loaded. Contact support or refresh.');
+        } else {
+            console.log('✅ Firebase config loaded:', firebaseConfig.projectId);  // Debug log
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
 
-        // Make auth global for other scripts
-        window.auth = auth;
-        window.onAuthStateChanged = onAuthStateChanged;
-        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-        window.signOut = signOut;
-        window.updateProfile = updateProfile;
+            // Make auth global for other scripts
+            window.auth = auth;
+            window.onAuthStateChanged = onAuthStateChanged;
+            window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+            window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+            window.signOut = signOut;
+            window.updateProfile = updateProfile;
+        }
     </script>
     <!-- Link to external stylesheet -->
     <link rel="stylesheet" href="style.css">
@@ -326,7 +333,7 @@
                         <p class="ocr-drop-separator">or</p>
                         <button type="button" class="ocr-select-btn" onclick="document.getElementById('ocrFileInput').click()">Select Image</button>
                         <button type="button" class="ocr-camera-btn" onclick="startOcrCamera()">Take a Picture</button>
-                        <input type="file" id="ocrFileInput" accept="image/*" style="display: none;">
+                        <input type="file" id="ocrFileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" style="display: none;">
                     </div>
                     <div class="ocr-instructions">
                         <h3>How to Get the Best Results:</h3>
