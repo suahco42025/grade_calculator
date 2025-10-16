@@ -88,21 +88,14 @@
     <!-- NEW: Tesseract.js for OCR -->
     <script src="https://unpkg.com/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
 
+    <!-- Load Firebase config from generated file -->
+    <script src="firebase-config.js"></script>
+
     <!-- Firebase SDK -->
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAz0wpwEd0uswwBZZwidZ-reJ0xfExXq14",
-            authDomain: "suahco4-9063e.firebaseapp.com",
-            projectId: "suahco4-9063e",
-            storageBucket: "suahco4-9063e.firebasestorage.app",
-            messagingSenderId: "178732591567",
-            appId: "1:178732591567:web:cfe66d44b4e868a1740aba"
-        };
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
