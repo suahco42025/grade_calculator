@@ -1698,6 +1698,7 @@ async function submitContactForm(e) {
         await emailjs.send('service_t4jdpwc', 'template_uh6ebet', {
             to_name: name,
             to_email: email,
+            email: email, // Add 'email' as a fallback for the recipient address
             reply_subject: `Re: ${subject} - Thanks for reaching out!`,
             reply_message: `Hi ${name}! We received your message about "${subject}". Our team will review it within 24-48 hours. In the meantime, check our Help section for quick tips. Best, Grade Calculator Team`
         });
