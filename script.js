@@ -620,7 +620,7 @@ async function preprocessImage(reader) {
     });
 }
 
-// UPDATED: Robust OCR with retries and config tweaks
+// UPDATED: Robust OCR with retries, better worker handling, and parameter fallback
 async function runOcr(reader, filename = 'unknown') {
     const progressDiv = document.getElementById('ocrProgress');
     const progressBar = document.getElementById('ocrProgressBar');
@@ -637,7 +637,7 @@ async function runOcr(reader, filename = 'unknown') {
     const attemptOcr = async () => {
         try {
             const processedImage = await preprocessImage(reader);
-            progressText.textContent = 'Running OCR engine...';
+            progressText.textContent = 'Initializing OCR engine...';
 
             const { createWorker } = Tesseract;
             const worker = await createWorker('eng', 1, {
@@ -652,51 +652,77 @@ async function runOcr(reader, filename = 'unknown') {
                 },
                 workerPath: 'https://unpkg.com/tesseract.js@v4.1.1/dist/worker.min.js',
                 langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+                corePath: 'https://unpkg.com/tesseract.js-core@v4.1.1/tesseract-core.wasm.js', // NEW: Explicit core path for stability
             });
 
-            // Optimized config for grades/tables
-            await worker.setParameters({
-                tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz :.,-()[]%',
-                tessedit_pageseg_mode: '3', // Auto (good for mixed text/tables)
-                tessedit_ocr_engine_mode: '1', // LSTM only (more accurate)
-            });
+            // NEW: Validate worker before config
+            if (!worker || typeof worker.setParameters !== 'function') {
+                throw new Error('OCR worker failed to initialize—try refreshing the page.');
+            }
+
+            // UPDATED: Wrap parameters in try-catch (fixes SetVariable null error)
+            try {
+                // Optimized config for grades/tables
+                await worker.setParameters({
+                    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz :.,-()[]%',
+                    tessedit_pageseg_mode: '3', // Auto (good for mixed text/tables)
+                    tessedit_ocr_engine_mode: '1', // LSTM only (more accurate)
+                });
+                console.log('OCR parameters set successfully');
+            } catch (paramError) {
+                console.warn('Parameter setting failed (common with Tesseract v4)—using defaults:', paramError);
+                // Fallback: Continue without custom params (still works)
+            }
+
+            progressText.textContent = 'Analyzing text...';
 
             const { data: { text, confidence } } = await worker.recognize(processedImage);
             await worker.terminate();
 
             if (confidence < 50) {
-                throw new Error(`Low confidence (${Math.round(confidence)}%)—image may be blurry.`);
+                throw new Error(`Low confidence (${Math.round(confidence)}%)—image may be blurry or unclear.`);
             }
 
-            if (!text.trim()) {
-                throw new Error('No text found—try a different image.');
+            if (!text || !text.trim()) {
+                throw new Error('No text detected—try a clearer image with more contrast.');
             }
 
-            resultText.value = text;
-            progressText.textContent = `✅ Done! Confidence: ${Math.round(confidence)}%`;
+            resultText.value = text.trim();
+            progressText.textContent = `✅ Complete! Confidence: ${Math.round(confidence)}%`;
             progressBar.style.width = '100%';
             progressBar.style.backgroundColor = '#27ae60';
 
-            showToast(`OCR success! ${text.split('\n').length} lines detected.`, 'success');
+            showToast(`OCR success! Detected ${text.split(/\s+/).length} words across ${text.split('\n').length} lines.`, 'success');
         } catch (err) {
             console.error('OCR attempt failed:', err);
             if (retryCount < maxRetries) {
                 retryCount++;
                 progressText.textContent = `Retrying (${retryCount}/${maxRetries})...`;
-                setTimeout(attemptOcr, 500); // Retry after delay
-            } else {
-                progressText.textContent = `❌ Failed after ${maxRetries + 1} tries: ${err.message}`;
-                progressBar.style.width = '100%';
-                progressBar.style.backgroundColor = '#e74c3c';
-                resultText.value = `Error: ${err.message}\n\nTips:\n- Use clear, straight images\n- Good lighting, no glare\n- Crop to text area\n<button class="small-btn" onclick="document.getElementById('ocrFileInput').click(); resetOcrSection();">Retry File</button>`;
+                setTimeout(attemptOcr, 1000); // Longer delay for retries
+                return;
+            }
 
-                // Append retry button
+            // Final failure handling
+            progressText.textContent = `❌ Failed after ${maxRetries + 1} tries: ${err.message}`;
+            progressBar.style.width = '100%';
+            progressBar.style.backgroundColor = '#e74c3c';
+            resultText.value = `Error: ${err.message}\n\nTroubleshooting:\n• Ensure image has clear, dark text on light background\n• Avoid glare/shadows—use good lighting\n• Crop tightly to the text area\n• Try a different image format (JPG/PNG best)\n\n<button class="small-btn" onclick="document.getElementById('ocrFileInput').click(); resetOcrSection();">📁 Select New File</button>`;
+
+            // Append retry button dynamically
+            const existingBtn = resultText.parentNode.querySelector('.small-btn');
+            if (!existingBtn) {
                 const btn = document.createElement('button');
                 btn.className = 'small-btn';
-                btn.textContent = 'Retry OCR';
-                btn.onclick = () => document.getElementById('ocrFileInput').click();
+                btn.textContent = '🔄 Retry OCR';
+                btn.style.marginTop = '10px';
+                btn.onclick = () => {
+                    document.getElementById('ocrFileInput').click();
+                    resetOcrSection();
+                };
                 resultText.parentNode.appendChild(btn);
             }
+
+            showToast('OCR failed—see tips above. Manual entry works too!', 'error');
         }
     };
 
