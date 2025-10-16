@@ -1,9 +1,13 @@
-const fs = require('fs');
-const path = require('path');
+import { writeFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 // This script runs during the Vercel build process.
 // It takes the environment variables and creates a JS file
 // that the frontend can use to initialize Firebase.
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const firebaseConfig = `
 const firebaseConfig = {
@@ -18,5 +22,5 @@ const firebaseConfig = {
 
 // Write the config to a file that will be included in the deployment.
 // The file is placed in the root, so it can be served statically.
-fs.writeFileSync(path.join(__dirname, 'firebase-config.js'), firebaseConfig);
+writeFileSync(join(__dirname, '..', 'firebase-config.js'), firebaseConfig);
 console.log('Firebase config file generated successfully.');
