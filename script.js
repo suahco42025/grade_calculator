@@ -1275,14 +1275,18 @@ try {
 // UPDATED: Display result (now shows semester breakdown)
 function displayResult(avgs) {
 const resultDiv = document.getElementById('result');
-const sem1Letter = getLetterGrade(avgs.sem1, isGPAMode);
-const sem2Letter = getLetterGrade(avgs.sem2, isGPAMode);
-const finalLetter = getLetterGrade(avgs.final, isGPAMode);
-let displayText = `Periods: ${columnNames.map((name, i) => `${name}: ${document.getElementById(columnIdMap[i]).textContent.split(' ')[0]}`).join(' | ')} | 1st Sem: ${avgs.sem1} (${sem1Letter}) | 2nd Sem: ${avgs.sem2} (${sem2Letter}) | Final: ${avgs.final} (${finalLetter})`;
-if (isGPAMode) {
-    displayText += ' (GPA Mode)';
-}
-resultDiv.innerHTML = `<div class="result">${displayText}</div>`;
+    const sem1Letter = getLetterGrade(avgs.sem1, isGPAMode);
+    const sem2Letter = getLetterGrade(avgs.sem2, isGPAMode);
+    const finalLetter = getLetterGrade(avgs.final, isGPAMode);
+
+    // Create a more readable, multi-line summary
+    const displayText = `
+        <strong>1st Sem:</strong> ${avgs.sem1} (${sem1Letter}) | 
+        <strong>2nd Sem:</strong> ${avgs.sem2} (${sem2Letter}) | 
+        <strong>Final:</strong> ${avgs.final} (${finalLetter})
+        ${isGPAMode ? '<br><small>(GPA Mode)</small>' : ''}
+    `;
+    resultDiv.innerHTML = `<div class="result">${displayText}</div>`;
 }
 
 // Function to show error

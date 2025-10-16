@@ -10,7 +10,7 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     background: white;
-    border-radius: 0.5rem;
+    border-radius: 12px; /* Slightly larger, more modern radius */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 30px;
     overflow-x: auto; /* For horizontal scroll on small screens */
@@ -1200,7 +1200,7 @@ body.dark-mode .login-section {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 60px;
+    width: 60px; /* Adjusted border */
     height: 60px;
     background: none; /* REMOVED: Gradient background - now transparent */
     border: 2px solid #ddd; /* Subtle border for visibility */
