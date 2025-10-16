@@ -84,6 +84,56 @@ function retryLastMessage(chatType = 'full') {  // Default to full chat
     }
 }
 
+// REFACTORED: Generic AI message sender
+async function sendMessageToAssistant(chatType = 'full') {
+    const isFloating = chatType === 'floating';
+    const input = document.getElementById(isFloating ? 'floatingChatInput' : 'aiChatInput');
+    const message = input.value.trim();
+    if (!message) return;
+
+    lastUserMessage = message; // For retry
+
+    // Add message to the correct chat window
+    const addMessage = isFloating ? addMessageToFloatingChat : addMessageToChat;
+    addMessage(message, 'user');
+    input.value = '';
+
+    const showStatus = isFloating ? showFloatingAIStatus : showAIStatus;
+    showStatus('🤔 Thinking...', 'loading');
+
+    const context = lastSubjectAvgs.length > 0 ?
+        `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join('; ')}.` :
+        'No grades calculated yet.';
+
+    try {
+        const response = await fetch('/api/openai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: [
+                    { role: 'system', content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!' },
+                    { role: 'user', content: `${context} User query: ${message}` }
+                ],
+                max_tokens: 150, temperature: 0.7
+            })
+        });
+
+        if (!response.ok) throw new Error(`API Error ${response.status}`);
+
+        const data = await response.json();
+        const aiReply = data.choices[0].message.content;
+        addMessage(aiReply, 'ai');
+        showStatus('✅ Sent!', 'success');
+    } catch (error) {
+        console.error('AI Error:', error);
+        const errorMsg = '❌ Connection issue. Check internet or try again.';
+        const fallbackMsg = 'AI is taking a break. Try: Focus on weak subjects for quick wins!';
+        showStatus(errorMsg, 'error');
+        addMessage(`Sorry! ${errorMsg}. ${fallbackMsg} <button class="retry-btn" onclick="retryLastMessage('${chatType}')">Retry</button>`, 'ai');
+    }
+}
+
 // UPDATED: AI Chat Functions (now proxies through Vercel /api/openai)
 function handleKeyPress(e) {
     if (e.key === 'Enter') sendMessageToAI();
@@ -95,127 +145,12 @@ function handleFloatingKeyPress(e) {
 }
 
 async function sendMessageToAI() {
-    const input = document.getElementById('aiChatInput');
-    const message = input.value.trim();
-    if (!message) return;
-
-    lastUserMessage = message; // For retry
-
-    // Add user message to chat
-    addMessageToChat(message, 'user');
-    input.value = '';
-    showAIStatus('🤔 Thinking...', 'loading');
-
-    // NEW: Pass grades context for smarter replies
-    const context = lastSubjectAvgs.length > 0 ? 
-        `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join('; ')}.` : 
-        'No grades calculated yet.';
-
-    try {
-        const response = await fetch('/api/openai', {  // Vercel proxy endpoint
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
-                    },
-                    { role: 'user', content: `${context} User query: ${message}` }
-                ],
-                max_tokens: 150,
-                temperature: 0.7
-            })
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                throw new Error('AI service not available—check deployment.');
-            }
-            const errorData = await response.json();
-            throw new Error(errorData.error || `API Error ${response.status}`);
-        }
-
-        const data = await response.json();
-        const aiReply = data.choices[0].message.content;
-        addMessageToChat(aiReply, 'ai');
-        showAIStatus('✅ Sent!', 'success');
-    } catch (error) {
-        console.error('AI Error:', error);
-        const errorMsg = error.message.includes('not configured') ? '❌ API key not set on server. Contact admin.' :
-                         error.message.includes('401') ? '❌ Invalid API key—check server config.' :
-                         error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
-                         '❌ Connection issue. Check internet or try again.';
-        const fallbackMsg = 'AI is taking a break. Try: Focus on weak subjects for quick wins!';
-        showAIStatus(errorMsg, 'error');
-        addMessageToChat(`Sorry! ${errorMsg}. ${fallbackMsg} <button class="retry-btn" onclick="retryLastMessage()">Retry</button>`, 'ai');
-    }
+    sendMessageToAssistant('full');
 }
 
 // UPDATED: Send message for floating chat (proxies through Vercel)
 async function sendMessageToFloatingAI() {
-    const input = document.getElementById('floatingChatInput');
-    const message = input.value.trim();
-    if (!message) return;
-
-    lastUserMessage = message; // For retry
-
-    // Add user message to floating chat
-    addMessageToFloatingChat(message, 'user');
-    input.value = '';
-    showFloatingAIStatus('🤔 Thinking...', 'loading');
-
-    // NEW: Pass grades context for smarter replies
-    const context = lastSubjectAvgs.length > 0 ? 
-        `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join('; ')}.` : 
-        'No grades calculated yet.';
-
-    try {
-        const response = await fetch('/api/openai', {  // Vercel proxy endpoint
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!'
-                    },
-                    { role: 'user', content: `${context} User query: ${message}` }
-                ],
-                max_tokens: 150,
-                temperature: 0.7
-            })
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                throw new Error('AI service not available—check deployment.');
-            }
-            const errorData = await response.json();
-            throw new Error(errorData.error || `API Error ${response.status}`);
-        }
-
-        const data = await response.json();
-        const aiReply = data.choices[0].message.content;
-        addMessageToFloatingChat(aiReply, 'ai');
-        showFloatingAIStatus('✅ Sent!', 'success');
-    } catch (error) {
-        console.error('AI Error:', error);
-        const errorMsg = error.message.includes('not configured') ? '❌ API key not set on server. Contact admin.' :
-                         error.message.includes('401') ? '❌ Invalid API key—check server config.' :
-                         error.message.includes('429') ? '⏳ Rate limit hit. Try again in a minute.' :
-                         '❌ Connection issue. Check internet or try again.';
-        const fallbackMsg = 'AI is taking a break. Try: Focus on weak subjects for quick wins!';
-        showFloatingAIStatus(errorMsg, 'error');
-        // UPDATED: Pass 'floating' to retry function
-        addMessageToFloatingChat(`Sorry! ${errorMsg}. ${fallbackMsg} <button class="retry-btn" onclick="retryLastMessage('floating')">Retry</button>`, 'ai');
-    }
+    sendMessageToAssistant('floating');
 }
 
 function addMessageToChat(message, sender) {
@@ -958,23 +893,22 @@ function toggleAuthForm() {
     const nameGroup = document.getElementById('nameInputGroup');
     const title = document.getElementById('authTitle');
     const subtitle = document.getElementById('authSubtitle');
-    const toggleText = toggleBtn.parentElement;
+    const toggleText = document.getElementById('authToggleText');
 
     if (submitBtn.textContent.includes('Create')) { // Currently in Sign Up mode
         submitBtn.textContent = 'Log In';
         nameGroup.style.display = 'none';
         title.textContent = 'Welcome Back!';
         subtitle.textContent = 'Log in to access your saved data.';
-        toggleText.innerHTML = `Don't have an account? <button type="button" id="toggleAuth" class="auth-toggle-btn">Sign Up</button>`;
+        toggleText.innerHTML = `Don't have an account? <button type="button" class="auth-toggle-btn">Sign Up</button>`;
     } else {
         submitBtn.textContent = 'Create Account';
         nameGroup.style.display = 'block';
         title.textContent = 'Create an Account';
         subtitle.textContent = 'to save sessions and track your progress.';
-        toggleText.innerHTML = `Already have an account? <button type="button" id="toggleAuth" class="auth-toggle-btn">Log In</button>`;
+        toggleText.innerHTML = `Already have an account? <button type="button" class="auth-toggle-btn">Log In</button>`;
     }
-    // Re-bind the new button
-    document.getElementById('toggleAuth').addEventListener('click', toggleAuthForm);
+    // The listener on the parent div handles the click, so no re-binding is needed.
 }
 
 // NEW: Update auth button state during submission
@@ -1425,20 +1359,6 @@ function saveProfile() {
             console.error('Profile Update Error:', error);
             alert('Failed to save profile.');
         });
-}
-
-function handlePicUpload(event) {
-    const file = event.target.files[0];
-    if (file && currentUser) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const img = document.getElementById('profilePicPreview');
-            img.src = e.target.result;
-            updateNavPic(e.target.result);
-            // TODO: Upload to Firebase Storage if needed
-        };
-        reader.readAsDataURL(file);
-    }
 }
 
 function updateNavPic(src) {
@@ -1938,8 +1858,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Toggle auth form
-    document.getElementById('toggleAuth').addEventListener('click', toggleAuthForm);
+    // Auth form toggle (using event delegation)
+    document.getElementById('authToggleText').addEventListener('click', function(e) {
+        if (e.target.classList.contains('auth-toggle-btn')) {
+            toggleAuthForm();
+        }
+    });
 
     // Contact form submit
     document.getElementById('contactForm').addEventListener('submit', submitContactForm);

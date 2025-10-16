@@ -141,7 +141,7 @@
                 <button type="submit" id="authSubmit" class="submit-btn">Create Account</button>
             </form>
             <div class="auth-toggle">
-                <p>Already have an account? <button type="button" id="toggleAuth" class="auth-toggle-btn">Log In</button></p>
+                <p id="authToggleText">Already have an account? <button type="button" class="auth-toggle-btn">Log In</button></p>
             </div>
             <div id="authError" class="auth-error"></div>
         </div>
@@ -530,13 +530,11 @@
                     <div class="profile-user-card">
                         <div class="profile-pic-container">
                             <img id="profilePicPreview" src="Suahco4.png" alt="User profile picture preview" class="profile-pic-preview">
-                            <button class="change-pic-btn" onclick="document.getElementById('profilePicUpload').click()" title="Change profile picture">📷</button>
-                            <input type="file" id="profilePicUpload" accept="image/*" onchange="handlePicUpload(event)" style="display: none;">
                         </div>
-                        <h2 id="profileDisplayName"></h2>
-                        <p id="profileDisplayEmail"></p>
+                        <h2 id="userName"></h2>
+                        <p id="userEmail"></p>
                         <div class="profile-edit-form">
-                            <input type="text" id="userName" placeholder="Update display name">
+                            <input type="text" id="updateNameInput" placeholder="Update display name">
                             <button onclick="saveProfile()" class="small-btn">Save</button>
                         </div>
                         <p class="small-text">Your email is managed by your login provider.</p>
