@@ -1695,7 +1695,7 @@ async function submitContactForm(e) {
         console.log('Main contact email sent successfully.');
         
         // Step 2: Send the auto-reply to the user
-        await emailjs.send('service_t4jdpwc', 'template_awyrou5', {
+        await emailjs.send('service_t4jdpwc', 'template_uh6ebet', {
             to_name: name,
             to_email: email,
             reply_subject: `Re: ${subject} - Thanks for reaching out!`,
