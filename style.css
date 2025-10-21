@@ -1140,19 +1140,33 @@ body.dark-mode .login-section {
     overflow-y: auto;
     background: white;
 }
+/* UPDATED: Chat message styling for a more modern, beautiful look */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 .ai-message {
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 18px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    animation: fadeIn 0.3s ease-out;
     margin-bottom: 10px;
-    padding: 8px 12px;
-    border-radius: 5px;
 }
 .ai-message.user {
     background: #3498db;
     color: white;
-    text-align: right;
+    border-bottom-right-radius: 4px; /* Bubble tail */
+    align-self: flex-end; /* Align bubble to the right */
+    margin-left: auto; /* Push to the right */
 }
 .ai-message.ai {
     background: #e8f4fd;
     color: #2c3e50;
+    border-bottom-left-radius: 4px; /* Bubble tail */
+    align-self: flex-start; /* Align bubble to the left */
+    margin-right: auto; /* Push to the left */
 }
 .ai-message .retry-btn {
     background: #27ae60;
@@ -1166,6 +1180,10 @@ body.dark-mode .login-section {
 }
 .ai-message .retry-btn:hover {
     background: #229954;
+}
+.ai-chat-messages, .floating-chat-messages {
+    display: flex;
+    flex-direction: column;
 }
 .ai-chat-input {
     display: flex;
@@ -1195,39 +1213,53 @@ body.dark-mode .login-section {
     font-size: 14px;
     margin-top: 10px;
 }
-/* UPDATED: Floating Assistant Widget - REMOVED GRADIENT BACKGROUND, USE ONLY suahco4.png */
+/* NEW: Animation to draw attention to the chat button on load */
+@keyframes pulse-attention {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    }
+}
+/* UPDATED: Floating Assistant Widget - REMOVED GRADIENT BACKGROUND, USE ONLY AI Chat.png */
 .floating-chat-toggle {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 60px; /* Adjusted border */
-    height: 60px;
+    width: 90px;
+    height: auto; /* Auto height for content */
     background: none; /* REMOVED: Gradient background - now transparent */
-    border: 2px solid #ddd; /* Subtle border for visibility */
-    border-radius: 50%;
+    border: none; /* REMOVED: No border */
     cursor: pointer;
     z-index: 200;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    box-shadow: none; /* REMOVED: No shadow for a cleaner look */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    animation: pulse-attention 1.5s ease-in-out 2s 3; /* name duration timing-function delay iteration-count */
     display: flex;
+    flex-direction: column; /* Stack image and text */
     align-items: center;
     justify-content: center;
+    gap: 4px; /* Space between image and text */
 }
 .floating-chat-toggle:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-    border-color: #3498db; /* Subtle hover border change */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 .floating-chat-toggle img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    opacity: 0.9;
-    transition: opacity 0.3s ease;
+    width: 75px; /* Set image size */
+    height: 75px;
 }
-.floating-chat-toggle:hover img {
-    opacity: 1; /* Brighten image on hover */
+.floating-chat-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #34495e;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7); /* Subtle shadow for readability */
+}
+body.dark-mode .floating-chat-label {
+    color: #ecf0f1; /* Light text for dark mode */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .floating-chat-window {
     position: fixed;
@@ -1322,8 +1354,8 @@ body.dark-mode .login-section {
 /* Mobile adjustments for floating chat */
 @media (max-width: 768px) {
     .floating-chat-toggle {
-        width: 50px;
-        height: 50px;
+        width: 60px; /* Increased mobile size */
+        height: 60px;
         bottom: 15px;
         right: 15px;
     }
@@ -1358,6 +1390,20 @@ body.dark-mode .floating-chat-input input {
     background: #3d566e;
     border-color: #5a6c7d;
     color: #ecf0f1;
+}
+body.dark-mode .floating-chat-header {
+    background: #2c3e50; /* Match navbar */
+}
+body.dark-mode .floating-chat-messages .ai-message.ai {
+    background: #2c3e50; /* Darker AI message bubble */
+    color: #ecf0f1;
+    border-bottom-left-radius: 4px;
+}
+body.dark-mode .ai-message.user {
+    border-bottom-right-radius: 4px;
+}
+body.dark-mode .floating-chat-full-link a {
+    color: #5dade2; /* Lighter blue for link */
 }
 body.dark-mode .floating-chat-status {
     color: #a0a0a0;

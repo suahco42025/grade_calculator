@@ -195,8 +195,15 @@ function showFloatingAIStatus(message, type) {
 function toggleFloatingChat() {
     const window = document.getElementById('floatingChatWindow');
     window.classList.toggle('active');
+
     if (window.classList.contains('active')) {
         document.getElementById('floatingChatInput').focus();
+        // NEW: Send a greeting only on the first open
+        const messagesDiv = document.getElementById('floatingChatMessages');
+        if (messagesDiv.children.length === 0) {
+            const greeting = "Hi! I'm Mot. Helena, your assistant. Ask me about your grades, study advice, or tool tips. For example: \"How do I improve my Math score?\"";
+            addMessageToFloatingChat(greeting, 'ai');
+        }
     }
 }
 
