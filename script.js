@@ -151,28 +151,48 @@ async function sendMessageToAI() {
     sendMessageToAssistant('full');
 }
 
-// UPDATED: Send message for floating chat (proxies through Vercel)
+// REFACTORED: Send message for floating chat
 async function sendMessageToFloatingAI() {
     sendMessageToAssistant('floating');
 }
 
-function addMessageToChat(message, sender) {
-    const messagesDiv = document.getElementById('aiChatMessages');
+// REFACTORED: Generic function to add a message to any chat window
+function addMessageToChat(message, sender, chatType = 'full') {
+    const messagesDiv = document.getElementById(chatType === 'floating' ? 'floatingChatMessages' : 'aiChatMessages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `ai-message ${sender}`;
-    messageDiv.innerHTML = message;  // Use innerHTML for retry button
+
+    // Create a container for the message text to avoid conflicts with buttons
+    const textSpan = document.createElement('span');
+    textSpan.innerHTML = message;
+    messageDiv.appendChild(textSpan);
+
+    // NEW: Add copy button for AI messages
+    if (sender === 'ai') {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.innerHTML = '📋'; // Clipboard icon
+        copyBtn.title = 'Copy to clipboard';
+        copyBtn.onclick = () => copyToClipboard(messageDiv, copyBtn);
+        messageDiv.appendChild(copyBtn);
+    }
+
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// NEW: Add message to floating chat
+// DEPRECATED: This is now handled by the refactored addMessageToChat
 function addMessageToFloatingChat(message, sender) {
-    const messagesDiv = document.getElementById('floatingChatMessages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `ai-message ${sender}`;
-    messageDiv.innerHTML = message;  // Use innerHTML for retry button
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    addMessageToChat(message, sender, 'floating');
+}
+
+// NEW: Copy to clipboard function with user feedback
+function copyToClipboard(messageDiv, button) {
+    const textToCopy = messageDiv.querySelector('span').innerText;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        button.textContent = '✅';
+        setTimeout(() => { button.innerHTML = '📋'; }, 2000);
+    }).catch(err => console.error('Copy failed:', err));
 }
 
 function showAIStatus(message, type) {
@@ -227,6 +247,21 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+// NEW: Clear chat history for either window
+function clearChatHistory(chatType = 'full') {
+    const isFloating = chatType === 'floating';
+    const messagesDiv = document.getElementById(isFloating ? 'floatingChatMessages' : 'aiChatMessages');
+    
+    if (confirm('Are you sure you want to clear this chat history?')) {
+        messagesDiv.innerHTML = ''; // Clear all messages
+        // If it's the floating chat, add the greeting back
+        if (isFloating) {
+            const greeting = "Hi! I'm Mot. Helena, your assistant. Ask me about your grades, study advice, or tool tips. For example: \"How do I improve my Math score?\"";
+            addMessageToFloatingChat(greeting, 'ai');
+        }
+    }
+}
 
 // NEW: QR Scan Functions
 function startQRScan() {
@@ -1013,20 +1048,27 @@ function addSubjectRow(defaultName = '') {
     
     // Build the row with the new column order
     let scoreInputs1 = '';
-    for (let i = 0; i < 4; i++) scoreInputs1 += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    scoreInputs1 += `<td data-label="1st Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    scoreInputs1 += `<td data-label="2nd Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    scoreInputs1 += `<td data-label="3rd Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    scoreInputs1 += `<td data-label="1st Exam"><input type="number" min="0" max="100" placeholder="Score"></td>`;
+
     let scoreInputs2 = '';
-    for (let i = 4; i < 8; i++) scoreInputs2 += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    scoreInputs2 += `<td data-label="4th Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    scoreInputs2 += `<td data-label="5th Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    scoreInputs2 += `<td data-label="6th Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    scoreInputs2 += `<td data-label="Final Exam"><input type="number" min="0" max="100" placeholder="Score"></td>`;
 
     row.innerHTML = `
-        <td>
+        <td data-label="Subject">
             <input type="text" value="${defaultName}" placeholder="Enter subject name">
             <button class="remove-btn">Remove</button>
         </td>
         ${scoreInputs1}
-        <td class="sem1-avg average-cell">0.00</td>
+        <td class="sem1-avg average-cell" data-label="1st Sem Avg">0.00</td>
         ${scoreInputs2}
-        <td class="sem2-avg average-cell">0.00</td>
-        <td class="final-avg average-cell">0.00</td>
+        <td class="sem2-avg average-cell" data-label="2nd Sem Avg">0.00</td>
+        <td class="final-avg average-cell" data-label="Final Avg">0.00</td>
     `;
     tbody.appendChild(row);
     clearError();

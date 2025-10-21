@@ -187,6 +187,7 @@
     <div id="floatingChatWindow" class="floating-chat-window">
         <div class="floating-chat-header">
             <h4>Mot. Helena</h4>
+            <button class="floating-chat-clear" onclick="clearChatHistory('floating')" title="Clear Chat">🗑️</button>
             <button class="floating-chat-close" onclick="toggleFloatingChat()">&times;</button>
         </div>
         <div id="floatingChatMessages" class="floating-chat-messages">
@@ -270,15 +271,15 @@
     <tfoot>
         <tr class="period-avg-row">
             <td><strong>Period Averages</strong></td>
-            <td id="avg1">0.00</td>
-            <td id="avg2">0.00</td>
-            <td id="avg3">0.00</td>
-            <td id="avgExam1">0.00</td>
+            <td id="avg1" data-label="1st Period">0.00</td>
+            <td id="avg2" data-label="2nd Period">0.00</td>
+            <td id="avg3" data-label="3rd Period">0.00</td>
+            <td id="avgExam1" data-label="1st Exam">0.00</td>
             <td></td> <!-- Placeholder for 1st Sem Avg column -->
-            <td id="avg4">0.00</td>
-            <td id="avg5">0.00</td>
-            <td id="avg6">0.00</td>
-            <td id="avgExam2">0.00</td>
+            <td id="avg4" data-label="4th Period">0.00</td>
+            <td id="avg5" data-label="5th Period">0.00</td>
+            <td id="avg6" data-label="6th Period">0.00</td>
+            <td id="avgExam2" data-label="Final Exam">0.00</td>
             <td colspan="2"></td> <!-- Span across semester/final columns -->
         </tr>
         <tr class="period-avg-row">
@@ -306,6 +307,10 @@
             <div class="ai-content">
                 <p style="text-align: center; color: #666;">Ask me anything about grades, study tips, or how to use this tool! (Powered by OpenAI)</p>
                 <div class="ai-chat-container">
+                    <div class="ai-chat-header">
+                        <h4>Full Assistant View</h4>
+                        <button class="ai-chat-clear" onclick="clearChatHistory('full')" title="Clear Chat">🗑️</button>
+                    </div>
                     <div id="aiChatMessages" class="ai-chat-messages">
                         <div class="ai-message ai">Hi! I'm your assistant. Ask me about your grades, study advice, or tool tips. For example: "How do I improve my Math score?"</div>
                     </div>
