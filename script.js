@@ -105,12 +105,15 @@ async function sendMessageToAssistant(chatType = 'full') {
         `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join('; ')}.` :
         'No grades calculated yet.';
 
+    // Get the user-selected model from localStorage
+    const selectedModel = localStorage.getItem('aiModel') || 'llama3-70b-8192';
+
     try {
         const response = await fetch('/api/openai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
+                model: selectedModel, // Pass the selected model
                 messages: [
                     { role: 'system', content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!' },
                     { role: 'user', content: `${context} User query: ${message}` }
@@ -1751,6 +1754,13 @@ function loadSettings() {
     // Date in export
     const dateInExport = localStorage.getItem('dateInExport') !== 'false';
     document.getElementById('dateInFilename').checked = dateInExport;
+}
+
+// NEW: Save selected AI model
+function saveAiModel() {
+    const model = document.getElementById('aiModelSelect').value;
+    localStorage.setItem('aiModel', model);
+    showToast(`AI model set to ${model}.`, 'info');
 }
 
 // Toggle dark mode

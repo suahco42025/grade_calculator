@@ -475,6 +475,18 @@
                 </div>
                 
                 <div class="setting-card">
+                    <h3>🤖 AI Assistant</h3>
+                    <div class="setting-item">
+                        <label for="aiModelSelect">Assistant Model</label>
+                        <select id="aiModelSelect" onchange="saveAiModel()">
+                            <option value="llama3-70b-8192">Llama 3 70B (Powerful)</option>
+                            <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fast)</option>
+                        </select>
+                    </div>
+                    <p class="small-text">Choose between a more powerful model or a faster one for the AI assistant.</p>
+                </div>
+                
+                <div class="setting-card">
                     <h3>📚 Default Subjects</h3>
                     <p>Comma-separated list for new tables.</p>
                     <div class="setting-input-group">

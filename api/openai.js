@@ -6,8 +6,9 @@ const groq = new Groq({
 
 // Supported models (update as needed from https://console.groq.com/docs/models)
 const SUPPORTED_MODELS = {
-  'gpt-3.5-turbo': 'llama-3.1-8b-instant',  // Map OpenAI-style requests to Groq
-  'default': 'llama-3.1-8b-instant',        // Fallback for frontend requests
+  'llama3-70b-8192': 'llama3-70b-8192',
+  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
+  'default': 'llama3-70b-8192', // Fallback if model is not specified or invalid
 };
 
 export default async function handler(req, res) {
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
   try {
     const { model = 'default', messages, max_tokens = 150, temperature = 0.7 } = req.body;
 
-    // Map to supported Groq model
+    // Validate and map to a supported Groq model
     const groqModel = SUPPORTED_MODELS[model] || SUPPORTED_MODELS['default'];
     
     console.log(`Using Groq model: ${groqModel} for request with ${messages.length} messages`);

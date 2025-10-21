@@ -548,12 +548,24 @@ section:not(.active) {
 .setting-card input[type="number"],
 .setting-card input[type="text"] {
     width: 100%;
-    padding: 10px;
+    padding: 10px; /* Base padding */
     border: 1px solid #ced4da;
     border-radius: 5px;
     box-sizing: border-box;
     font-size: 14px;
     transition: border-color 0.3s, box-shadow 0.3s;
+}
+.setting-card select {
+    padding: 10px; /* Match input padding */
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    background-color: white;
+    font-size: 14px;
+    flex-grow: 1;
+    cursor: pointer;
+    -webkit-appearance: none; /* Remove default styling for WebKit browsers */
+    -moz-appearance: none;    /* Remove default styling for Firefox */
+    appearance: none;         /* Standard property to remove default styling */
 }
 .setting-card input:focus {
     outline: none;
@@ -666,6 +678,11 @@ body.dark-mode .average-cell { background-color: #2d4a3a; color: #a3e4d7; }
 body.dark-mode .period-avg-row { background-color: #1e3a2f; }
 body.dark-mode input { background-color: #3d566e; border-color: #5a6c7d; color: #ecf0f1; }
 body.dark-mode textarea { background-color: #3d566e; border-color: #5a6c7d; color: #ecf0f1; }
+body.dark-mode .setting-card select {
+    background-color: #3d566e;
+    border-color: #5a6c7d;
+    color: #ecf0f1;
+}
 body.dark-mode input::placeholder { color: #a0a0a0; opacity: 0.7; } /* Added for better dark mode placeholder visibility */
 /* Footer styling */
 footer {
