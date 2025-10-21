@@ -1434,36 +1434,36 @@ body.dark-mode .qr-modal-content {
 body.dark-mode .qr-modal video {
     border-color: #5a6c7d;
 }
-/* NEW: OCR Section Styling */
-.ocr-section {
+/* NEW: Grade Scan Section Styling */
+.grade-scan-section {
     padding: 20px 0;
 }
-.ocr-content {
+.grade-scan-content {
     max-width: 800px;
     margin: 20px auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
 }
-.ocr-controls, .ocr-results {
+.grade-scan-controls, .grade-scan-results {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
-.ocr-results {
+.grade-scan-results {
     justify-content: space-between;
 }
-.ocr-instructions {
+.grade-scan-instructions {
     background: #e8f4fd;
     padding: 15px;
     border-radius: 8px;
     border: 1px solid #bde0fe;
 }
-.ocr-instructions h3 {
+.grade-scan-instructions h3 {
     margin-top: 0;
     color: #2c3e50;
 }
-.ocr-drop-zone {
+.grade-scan-drop-zone {
     border: 2px dashed #3498db;
     border-radius: 8px;
     padding: 40px;
@@ -1476,19 +1476,19 @@ body.dark-mode .qr-modal video {
     justify-content: center;
     flex-grow: 1;
 }
-.ocr-drop-zone:hover, .ocr-drop-zone.dragover {
+.grade-scan-drop-zone:hover, .grade-scan-drop-zone.dragover {
     background-color: #e8f4fd;
     border-style: solid;
 }
-.ocr-drop-icon {
+.grade-scan-drop-icon {
     font-size: 48px;
     color: #3498db;
 }
-.ocr-drop-separator {
+.grade-scan-drop-separator {
     color: #aaa;
     margin: 10px 0;
 }
-.ocr-select-btn {
+.grade-scan-select-btn {
     background-color: #3498db;
     color: white;
     border: none;
@@ -1498,10 +1498,10 @@ body.dark-mode .qr-modal video {
     font-size: 16px;
     transition: background-color 0.3s;
 }
-.ocr-select-btn:hover {
+.grade-scan-select-btn:hover {
     background-color: #2980b9;
 }
-.ocr-camera-btn {
+.grade-scan-camera-btn {
     background-color: #1abc9c;
     color: white;
     border: none;
@@ -1512,22 +1512,22 @@ body.dark-mode .qr-modal video {
     transition: background-color 0.3s;
     margin-top: 10px;
 }
-.ocr-camera-btn:hover {
+.grade-scan-camera-btn:hover {
     background-color: #16a085;
 }
-.ocr-preview-container {
+.grade-scan-preview-container {
     text-align: center;
     background: #f8f9fa;
     padding: 10px;
     border-radius: 8px;
 }
-.ocr-preview-container img {
+.grade-scan-preview-container img {
     max-width: 100%;
     max-height: 300px;
     border: 1px solid #ddd;
     border-radius: 5px;
 }
-.ocr-progress {
+.grade-scan-progress {
     width: 100%;
     background-color: #f3f3f3;
     border-radius: 5px;
@@ -1535,20 +1535,20 @@ body.dark-mode .qr-modal video {
     position: relative;
     height: 30px;
 }
-.ocr-progress-bar {
+.grade-scan-progress-bar {
     width: 0;
     height: 100%;
     background-color: #27ae60;
     transition: width 0.4s ease;
 }
-.ocr-progress-text {
+.grade-scan-progress-text {
     position: absolute;
     width: 100%;
     text-align: center;
     line-height: 30px;
     color: #333;
 }
-.ocr-content textarea {
+.grade-scan-content textarea {
     width: 100%;
     height: 150px;
     padding: 10px;
@@ -1558,25 +1558,25 @@ body.dark-mode .qr-modal video {
     resize: vertical;
     font-family: monospace;
 }
-body.dark-mode .ocr-drop-zone {
+body.dark-mode .grade-scan-drop-zone {
     border-color: #5dade2;
 }
-body.dark-mode .ocr-drop-zone:hover {
+body.dark-mode .grade-scan-drop-zone:hover {
     background-color: #2c3e50;
 }
-body.dark-mode .ocr-instructions {
+body.dark-mode .grade-scan-instructions {
     background: #2c3e50;
     border-color: #5dade2;
 }
 @media (max-width: 768px) {
-    .ocr-content {
+    .grade-scan-content {
         grid-template-columns: 1fr;
     }
 }
-body.dark-mode .ocr-preview-container {
+body.dark-mode .grade-scan-preview-container {
     background: #2c3e50;
 }
-body.dark-mode .ocr-instructions h3 {
+body.dark-mode .grade-scan-instructions h3 {
     color: #ecf0f1;
 }
 body.dark-mode .grade-table-card {

@@ -159,7 +159,7 @@
                 <li><a href="#" onclick="showSection('profile')">Profile</a></li>
                 <li><a href="#" onclick="showSection('settings')">Settings</a></li>
                 <li><a href="#" onclick="showSection('help')">Help</a></li>
-                <li><a href="#" onclick="showSection('ocr')">OCR Scan</a></li>
+                <li><a href="#" onclick="showSection('grade-scan')">Grade Scan</a></li>
                 <li><a href="#" onclick="showSection('contact')">Contact</a></li>
             </ul>
             <div class="nav-profile">
@@ -216,20 +216,20 @@
         </div>
     </div>
 
-    <!-- NEW: OCR Camera Modal -->
-    <div id="ocrCameraModal" class="qr-modal">
+    <!-- NEW: Grade Scan Camera Modal -->
+    <div id="gradeScanCameraModal" class="qr-modal">
         <div class="qr-modal-content">
-            <span class="qr-close" onclick="closeOcrCameraModal()">&times;</span>
+            <span class="qr-close" onclick="closeGradeScanCameraModal()">&times;</span>
             <h3>📷 Capture Grade Sheet</h3>
             <p>Position the document in the frame and hold steady.</p>
-            <video id="ocrCameraVideo" autoplay playsinline></video>
-            <div id="ocrCameraStatus" class="qr-status">Loading camera...</div>
-            <button onclick="captureOcrImage()" class="small-btn">Capture Image</button>
-            <button onclick="closeOcrCameraModal()" class="small-btn secondary-btn">Cancel</button>
+            <video id="gradeScanCameraVideo" autoplay playsinline></video>
+            <div id="gradeScanCameraStatus" class="qr-status">Loading camera...</div>
+            <button onclick="captureGradeScanImage()" class="small-btn">Capture Image</button>
+            <button onclick="closeGradeScanCameraModal()" class="small-btn secondary-btn">Cancel</button>
         </div>
     </div>
 
-    <!-- NEW: Hidden file input for OCR -->
+    <!-- NEW: Hidden file input for Grade Scan -->
         <div class="container">
             <!-- Wrapped: Grades Section -->
         <section id="grades-section" class="grades-section active">
@@ -237,7 +237,7 @@
                 <h1>Grade Matrix</h1>
                 <div class="controls">
                     <button id="addSubject" title="Add a new subject row">➕ Add Subject</button>
-                    <button id="scanGradesBtn" onclick="showSection('ocr')" title="Scan grades from an image">📷 Scan Grades</button>
+                    <button id="scanGradesBtn" onclick="showSection('grade-scan')" title="Scan grades from an image">📷 Scan Grades</button>
                     <div class="download-buttons">
                         <button id="downloadBtn" style="display: none;" onclick="downloadCSV()" title="Export as CSV file">📄 CSV</button>
                         <button id="pdfBtn" style.display="none;" onclick="downloadPDF()" title="Export as PDF file">📄 PDF</button>
@@ -320,22 +320,22 @@
             <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
         </section>
 
-        <!-- NEW: Advanced OCR Section -->
-        <section id="ocr-section" class="ocr-section" style="display: none;">
-            <h1>Advanced OCR - Scan Grades</h1>
-            <canvas id="ocrPreprocessCanvas" style="display: none;"></canvas> <!-- Hidden canvas for image processing -->
-            <div class="ocr-content">
+        <!-- NEW: Advanced Grade Scan Section -->
+        <section id="grade-scan-section" class="grade-scan-section" style="display: none;">
+            <h1>Advanced Grade Scan</h1>
+            <canvas id="gradeScanPreprocessCanvas" style="display: none;"></canvas> <!-- Hidden canvas for image processing -->
+            <div class="grade-scan-content">
                 <!-- Left Column: Controls -->
-                <div class="ocr-controls">
-                    <div id="ocrDropZone" class="ocr-drop-zone">
-                        <div class="ocr-drop-icon">📷</div>
+                <div class="grade-scan-controls">
+                    <div id="gradeScanDropZone" class="grade-scan-drop-zone">
+                        <div class="grade-scan-drop-icon">📷</div>
                         <p>Drag & Drop an image here</p>
-                        <p class="ocr-drop-separator">or</p>
-                        <button type="button" class="ocr-select-btn" onclick="document.getElementById('ocrFileInput').click()">Select Image</button>
-                        <button type="button" class="ocr-camera-btn" onclick="startOcrCamera()">Take a Picture</button>
-                        <input type="file" id="ocrFileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" style="display: none;">
+                        <p class="grade-scan-drop-separator">or</p>
+                        <button type="button" class="grade-scan-select-btn" onclick="document.getElementById('gradeScanFileInput').click()">Select Image</button>
+                        <button type="button" class="grade-scan-camera-btn" onclick="startGradeScanCamera()">Take a Picture</button>
+                        <input type="file" id="gradeScanFileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" style="display: none;">
                     </div>
-                    <div class="ocr-instructions">
+                    <div class="grade-scan-instructions">
                         <h3>How to Get the Best Results:</h3>
                         <ul>
                             <li>Use a clear, well-lit image of your grade sheet.</li>
@@ -345,16 +345,16 @@
                     </div>
                 </div>
                 <!-- Right Column: Results -->
-                <div class="ocr-results">
-                    <div id="ocrPreviewContainer" class="ocr-preview-container" style="display: none;">
-                        <img id="ocrPreviewImage" src="#" alt="Image preview">
+                <div class="grade-scan-results">
+                    <div id="gradeScanPreviewContainer" class="grade-scan-preview-container" style="display: none;">
+                        <img id="gradeScanPreviewImage" src="#" alt="Image preview">
                     </div>
-                    <div id="ocrProgress" class="ocr-progress" style="display: none;">
-                        <div id="ocrProgressBar" class="ocr-progress-bar"></div>
-                        <span id="ocrProgressText"></span>
+                    <div id="gradeScanProgress" class="grade-scan-progress" style="display: none;">
+                        <div id="gradeScanProgressBar" class="grade-scan-progress-bar"></div>
+                        <span id="gradeScanProgressText"></span>
                     </div>
-                    <textarea id="ocrResultText" placeholder="Recognized text will appear here..."></textarea>
-                    <button id="parseOcrBtn" class="small-btn" onclick="parseAndAddOcrGrades()">Parse & Add to Table</button>
+                    <textarea id="gradeScanResultText" placeholder="Recognized text will appear here..."></textarea>
+                    <button id="parseGradeScanBtn" class="small-btn" onclick="parseAndAddScannedGrades()">Parse & Add to Table</button>
                 </div>
             </div>
             <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
@@ -602,7 +602,7 @@
                         </div>
                         <div class="form-group">
                             <label for="contactSubject">Subject</label>
-                            <input type="text" id="contactSubject" placeholder="e.g., Feedback on OCR" required>
+                            <input type="text" id="contactSubject" placeholder="e.g., Feedback on Grade Scan" required>
                         </div>
                         <div class="form-group">
                             <label for="contactMessage">Message</label>
