@@ -105,15 +105,12 @@ async function sendMessageToAssistant(chatType = 'full') {
         `Current grades: Overall ${lastOverallAvg}%. Subjects: ${lastSubjectAvgs.map(s => `${s.name}: ${s.avg}%`).join('; ')}.` :
         'No grades calculated yet.';
 
-    // Get the user-selected model from localStorage
-    const selectedModel = localStorage.getItem('aiModel') || 'llama3-70b-8192';
-
     try {
         const response = await fetch('/api/openai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: selectedModel, // Pass the selected model
+                model: 'gpt-3.5-turbo', // This is mapped to a Groq model in the backend
                 messages: [
                     { role: 'system', content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!' },
                     { role: 'user', content: `${context} User query: ${message}` }
@@ -151,48 +148,28 @@ async function sendMessageToAI() {
     sendMessageToAssistant('full');
 }
 
-// REFACTORED: Send message for floating chat
+// UPDATED: Send message for floating chat (proxies through Vercel)
 async function sendMessageToFloatingAI() {
     sendMessageToAssistant('floating');
 }
 
-// REFACTORED: Generic function to add a message to any chat window
-function addMessageToChat(message, sender, chatType = 'full') {
-    const messagesDiv = document.getElementById(chatType === 'floating' ? 'floatingChatMessages' : 'aiChatMessages');
+function addMessageToChat(message, sender) {
+    const messagesDiv = document.getElementById('aiChatMessages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `ai-message ${sender}`;
-
-    // Create a container for the message text to avoid conflicts with buttons
-    const textSpan = document.createElement('span');
-    textSpan.innerHTML = message;
-    messageDiv.appendChild(textSpan);
-
-    // NEW: Add copy button for AI messages
-    if (sender === 'ai') {
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-btn';
-        copyBtn.innerHTML = '📋'; // Clipboard icon
-        copyBtn.title = 'Copy to clipboard';
-        copyBtn.onclick = () => copyToClipboard(messageDiv, copyBtn);
-        messageDiv.appendChild(copyBtn);
-    }
-
+    messageDiv.innerHTML = message;  // Use innerHTML for retry button
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// DEPRECATED: This is now handled by the refactored addMessageToChat
+// NEW: Add message to floating chat
 function addMessageToFloatingChat(message, sender) {
-    addMessageToChat(message, sender, 'floating');
-}
-
-// NEW: Copy to clipboard function with user feedback
-function copyToClipboard(messageDiv, button) {
-    const textToCopy = messageDiv.querySelector('span').innerText;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        button.textContent = '✅';
-        setTimeout(() => { button.innerHTML = '📋'; }, 2000);
-    }).catch(err => console.error('Copy failed:', err));
+    const messagesDiv = document.getElementById('floatingChatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `ai-message ${sender}`;
+    messageDiv.innerHTML = message;  // Use innerHTML for retry button
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 function showAIStatus(message, type) {
@@ -218,15 +195,8 @@ function showFloatingAIStatus(message, type) {
 function toggleFloatingChat() {
     const window = document.getElementById('floatingChatWindow');
     window.classList.toggle('active');
-
     if (window.classList.contains('active')) {
         document.getElementById('floatingChatInput').focus();
-        // NEW: Send a greeting only on the first open
-        const messagesDiv = document.getElementById('floatingChatMessages');
-        if (messagesDiv.children.length === 0) {
-            const greeting = "Hi! I'm Mot. Helena, your assistant. Ask me about your grades, study advice, or tool tips. For example: \"How do I improve my Math score?\"";
-            addMessageToFloatingChat(greeting, 'ai');
-        }
     }
 }
 
@@ -247,21 +217,6 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
-
-// NEW: Clear chat history for either window
-function clearChatHistory(chatType = 'full') {
-    const isFloating = chatType === 'floating';
-    const messagesDiv = document.getElementById(isFloating ? 'floatingChatMessages' : 'aiChatMessages');
-    
-    if (confirm('Are you sure you want to clear this chat history?')) {
-        messagesDiv.innerHTML = ''; // Clear all messages
-        // If it's the floating chat, add the greeting back
-        if (isFloating) {
-            const greeting = "Hi! I'm Mot. Helena, your assistant. Ask me about your grades, study advice, or tool tips. For example: \"How do I improve my Math score?\"";
-            addMessageToFloatingChat(greeting, 'ai');
-        }
-    }
-}
 
 // NEW: QR Scan Functions
 function startQRScan() {
@@ -375,457 +330,345 @@ function generateQRForSession(session) {
     });
 }
 
-// NEW: Grade Scan Camera Capture Functions
-let gradeScanVideoStream = null;
+// NEW: GradeScan Module for all OCR functionality
+const GradeScan = {
+    videoStream: null,
 
-function startGradeScanCamera() {
-    const modal = document.getElementById('gradeScanCameraModal');
-    const status = document.getElementById('gradeScanCameraStatus');
-    modal.style.display = 'flex'; // Use flex for centering
-    status.textContent = 'Requesting camera access...';
-
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(stream => {
-            gradeScanVideoStream = stream;
-            const video = document.getElementById('gradeScanCameraVideo');
-            video.srcObject = stream;
-            video.play();
-            status.textContent = 'Camera ready. Press Capture.';
-        })
-        .catch(err => {
-            console.error('Camera Error:', err);
-            status.textContent = 'Camera access denied. Please enable permissions in your browser settings.';
+    init() {
+        this._setupDropZone();
+        document.getElementById('ocrFileInput').addEventListener('change', this.handleFileSelect.bind(this));
+        document.getElementById('ocrCameraModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) this.closeCameraModal();
         });
-}
+    },
 
-function captureGradeScanImage() {
-    const video = document.getElementById('gradeScanCameraVideo');
-    const canvas = document.getElementById('gradeScanPreprocessCanvas'); // Reuse the hidden canvas
-    const ctx = canvas.getContext('2d');
+    startCamera() {
+        const modal = document.getElementById('ocrCameraModal');
+        const status = document.getElementById('ocrCameraStatus');
+        modal.style.display = 'flex';
+        status.textContent = 'Requesting camera access...';
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(stream => {
+                this.videoStream = stream;
+                const video = document.getElementById('ocrCameraVideo');
+                video.srcObject = stream;
+                video.play();
+                status.textContent = 'Camera ready. Press Capture.';
+            })
+            .catch(err => {
+                console.error('Camera Error:', err);
+                status.textContent = 'Camera access denied. Please enable permissions.';
+            });
+    },
 
-    const imageDataUrl = canvas.toDataURL('image/jpeg');
+    captureImage() {
+        const video = document.getElementById('ocrCameraVideo');
+        const canvas = document.getElementById('ocrPreprocessCanvas');
+        const ctx = canvas.getContext('2d');
 
-    // Now, use this image data for Grade Scan
-    resetGradeScanSection(); // Clear previous results
-    document.getElementById('gradeScanPreviewImage').src = imageDataUrl;
-    document.getElementById('gradeScanPreviewContainer').style.display = 'block';
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Create a mock reader object for runOcr
-    const mockReader = { result: imageDataUrl };
-    runOcr(mockReader);
+        const imageDataUrl = canvas.toDataURL('image/jpeg');
 
-    // Close the camera modal and switch to the OCR section
-    closeGradeScanCameraModal();
-    showSection('grade-scan');
-}
+        this.resetUI();
+        document.getElementById('ocrPreviewImage').src = imageDataUrl;
+        document.getElementById('ocrPreviewContainer').style.display = 'block';
 
-function closeGradeScanCameraModal() {
-    const modal = document.getElementById('gradeScanCameraModal');
-    modal.style.display = 'none';
-    if (gradeScanVideoStream) {
-        gradeScanVideoStream.getTracks().forEach(track => track.stop());
-        gradeScanVideoStream = null;
-    }
-}
+        this.run({ result: imageDataUrl }, 'camera_capture.jpg');
+        this.closeCameraModal();
+        showSection('ocr');
+    },
 
-document.getElementById('gradeScanCameraModal').addEventListener('click', function(e) {
-    if (e.target === this) closeGradeScanCameraModal();
-});
-
-// NEW: Convert PDF to image (basic stub - warns user for now; expand with pdf.js if needed)
-async function handlePDFFile(file) {
-    showToast('PDF detected! Convert to image first (e.g., screenshot or use online tool like ilovepdf.com).', 'info');
-    // FUTURE: Integrate pdf.js for client-side conversion
-    // For now, reject and suggest manual conversion
-    throw new Error('PDF not supported yet—please convert to JPG/PNG.');
-}
-
-// NEW: Enhanced file validation (allows ANY file, but processes only images)
-function isValidGradeScanFile(file) {
-    const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/heic'];
-    const isImage = imageTypes.includes(file.type) || file.type.startsWith('image/');
-    const isPDF = file.type === 'application/pdf';
-    return isImage || isPDF;
-}
-
-// NEW: Get image from file (handles DataURL or canvas for PDFs/images)
-async function getImageFromFile(file) {
-    if (file.type === 'application/pdf') {
-        await handlePDFFile(file); // Throws error with guidance
-    }
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
-// UPDATED: Enhanced drop zone with better file validation
-function setupGradeScanDropZone() {
-    const dropZone = document.getElementById('gradeScanDropZone');
-    const fileInput = document.getElementById('gradeScanFileInput');
-
-    dropZone.addEventListener('click', (e) => {
-        // Only trigger file input if the click is not on a button.
-        // This prevents the file dialog from opening when "Take a Picture" is clicked.
-        if (e.target.tagName !== 'BUTTON') {
-            fileInput.click();
+    closeCameraModal() {
+        const modal = document.getElementById('ocrCameraModal');
+        modal.style.display = 'none';
+        if (this.videoStream) {
+            this.videoStream.getTracks().forEach(track => track.stop());
+            this.videoStream = null;
         }
-    });
+    },
 
-    // Drag & drop for any file
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        });
-    });
+    handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-    dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', (e) => {
-        dropZone.classList.remove('dragover');
-        const files = Array.from(e.dataTransfer.files);
-        const validFiles = files.filter(isValidGradeScanFile);
-        if (validFiles.length === 0) {
-            showToast('Drop valid images (JPG, PNG, etc.) or PDFs (convert first).', 'error');
+        if (!this._isValidFile(file)) {
+            showToast('Unsupported file. Use images (JPG, PNG, etc.) or convert PDFs to images.', 'error');
+            event.target.value = '';
             return;
         }
-        if (validFiles.length > 1) {
-            showToast('Processing first file only (multi-file coming soon).', 'info');
-        }
-        // Create fake FileList for single file
-        const dt = new DataTransfer();
-        dt.items.add(validFiles[0]);
-        fileInput.files = dt.files;
-        handleGradeScanFileSelect({ target: fileInput });
-    });
-}
 
-function handleGradeScanFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+        showToast(`Loading: ${file.name} (${Math.round(file.size / 1024)} KB)`, 'info');
+        this.resetUI();
 
-    if (!isValidGradeScanFile(file)) {
-        showToast('Unsupported file. Use images (JPG, PNG, GIF, WEBP, BMP, TIFF) or convert PDFs to images.', 'error');
-        event.target.value = '';
-        return;
-    }
+        this._getImageFromFile(file).then((imageData) => {
+            console.log('File loaded for OCR:', file.name, file.type);
+            document.getElementById('ocrPreviewImage').src = imageData;
+            document.getElementById('ocrPreviewContainer').style.display = 'block';
+            this.run({ result: imageData }, file.name);
+        }).catch((err) => {
+            console.error('File load error:', err);
+            showToast(err.message, 'error');
+        });
+    },
 
-    showToast(`Loading: ${file.name} (${Math.round(file.size / 1024)} KB)`, 'info');
-    resetGradeScanSection();
+    resetUI() {
+        document.getElementById('ocrPreviewContainer').style.display = 'none';
+        document.getElementById('ocrPreviewImage').src = '#';
+        document.getElementById('ocrProgress').style.display = 'none';
+        document.getElementById('ocrProgressBar').style.width = '0%';
+        document.getElementById('ocrProgressBar').style.backgroundColor = '#27ae60';
+        document.getElementById('ocrProgressText').textContent = '';
+        document.getElementById('ocrResultText').value = '';
+    },
 
-    getImageFromFile(file).then((imageData) => {
-        console.log('File loaded for Grade Scan:', file.name, file.type);
-        document.getElementById('gradeScanPreviewImage').src = imageData;
-        document.getElementById('gradeScanPreviewContainer').style.display = 'block';
-        runOcr({ result: imageData }, file.name);
-    }).catch((err) => {
-        console.error('File load error:', err);
-        showToast(err.message, 'error');
-    });
-}
+    async run(reader, filename = 'unknown') {
+        const progressDiv = document.getElementById('ocrProgress');
+        const progressBar = document.getElementById('ocrProgressBar');
+        const progressText = document.getElementById('ocrProgressText');
+        const resultText = document.getElementById('ocrResultText');
 
-function resetGradeScanSection() {
-    document.getElementById('gradeScanPreviewContainer').style.display = 'none';
-    document.getElementById('gradeScanPreviewImage').src = '#';
-    document.getElementById('gradeScanProgress').style.display = 'none';
-    document.getElementById('gradeScanProgressBar').style.width = '0%';
-    document.getElementById('gradeScanProgressBar').style.backgroundColor = '#27ae60';
-    document.getElementById('gradeScanProgressText').textContent = '';
-    document.getElementById('gradeScanResultText').value = '';
-}
+        progressDiv.style.display = 'block';
+        progressText.textContent = 'Preparing image...';
+        resultText.value = '';
 
-// UPDATED: Advanced preprocessing (noise reduction + adaptive threshold)
-async function preprocessImage(reader) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous'; // For external images
-        img.onload = () => {
-            const canvas = document.getElementById('gradeScanPreprocessCanvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = Math.min(img.width, 1200); // Resize for speed
-            canvas.height = (img.height / img.width) * canvas.width;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        let retryCount = 0;
+        const maxRetries = 2;
 
-            // Grayscale
-            let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            let data = imageData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                data[i] = data[i + 1] = data[i + 2] = avg;
-            }
-            ctx.putImageData(imageData, 0, 0);
-
-            // Sharpen (simple unsharp mask)
-            ctx.filter = 'contrast(150%) brightness(120%)';
-            ctx.drawImage(canvas, 0, 0);
-
-            // Adaptive threshold (better for uneven lighting)
-            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            data = imageData.data;
-            const blockSize = 15;
-            for (let y = 0; y < canvas.height; y++) {
-                for (let x = 0; x < canvas.width; x++) {
-                    const i = (y * canvas.width + x) * 4;
-                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                    // Local threshold (simple Gaussian-like)
-                    let localAvg = 0, count = 0;
-                    for (let dy = -blockSize; dy <= blockSize; dy++) {
-                        for (let dx = -blockSize; dx <= blockSize; dx++) {
-                            const ny = Math.max(0, Math.min(canvas.height - 1, y + dy));
-                            const nx = Math.max(0, Math.min(canvas.width - 1, x + dx));
-                            const ni = (ny * canvas.width + nx) * 4;
-                            localAvg += (data[ni] + data[ni + 1] + data[ni + 2]) / 3;
-                            count++;
-                        }
-                    }
-                    const threshold = localAvg / count;
-                    const isDark = avg < threshold;
-                    data[i] = data[i + 1] = data[i + 2] = isDark ? 0 : 255;
-                }
-            }
-            ctx.putImageData(imageData, 0, 0);
-
-            console.log('Preprocessing complete:', canvas.width + 'x' + canvas.height);
-            resolve(canvas.toDataURL('image/png')); // Return as PNG for quality
-        };
-        img.onerror = reject;
-        img.src = reader.result;
-    });
-}
-
-// UPDATED: Robust OCR with retries, better worker handling, and parameter fallback
-async function runOcr(reader, filename = 'unknown') {
-    const progressDiv = document.getElementById('gradeScanProgress');
-    const progressBar = document.getElementById('gradeScanProgressBar');
-    const progressText = document.getElementById('gradeScanProgressText');
-    const resultText = document.getElementById('gradeScanResultText');
-
-    progressDiv.style.display = 'block';
-    progressText.textContent = 'Preparing image...';
-    resultText.value = '';
-
-    let retryCount = 0;
-    const maxRetries = 2;
-
-    const attemptOcr = async () => {
-        try {
-            const processedImage = await preprocessImage(reader);
-            progressText.textContent = 'Initializing OCR engine...';
-
-            const { createWorker } = Tesseract;
-            const worker = await createWorker('eng', 1, {
-                logger: (m) => {
-                    console.log(`Grade Scan (${filename}, attempt ${retryCount + 1}):`, m);
-                    if (m.status === 'recognizing text') {
-                        progressBar.style.width = `${Math.round(m.progress * 100)}%`;
-                        progressText.textContent = `Scanning... ${Math.round(m.progress * 100)}%`;
-                    } else {
-                        progressText.textContent = m.status.replace('_', ' ').toUpperCase() + '...';
-                    }
-                },
-                workerPath: 'https://unpkg.com/tesseract.js@v4.1.1/dist/worker.min.js',
-                langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-                corePath: 'https://unpkg.com/tesseract.js-core@v4.1.1/tesseract-core.wasm.js', // NEW: Explicit core path for stability
-            });
-
-            // NEW: Validate worker before config
-            if (!worker || typeof worker.setParameters !== 'function') {
-                throw new Error('Grade Scan worker failed to initialize—try refreshing the page.');
-            }
-
-            // UPDATED: Wrap parameters in try-catch (fixes SetVariable null error)
+        const attemptOcr = async () => {
             try {
-                // Optimized config for grades/tables
-                await worker.setParameters({
-                    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz :.,-()[]%',
-                    tessedit_pageseg_mode: '3', // Auto (good for mixed text/tables)
-                    tessedit_ocr_engine_mode: '1', // LSTM only (more accurate)
+                const processedImage = await this.preprocessImage(reader);
+                progressText.textContent = 'Initializing OCR engine...';
+
+                const { createWorker } = Tesseract;
+                const worker = await createWorker('eng', 1, {
+                    logger: (m) => {
+                        console.log(`OCR (${filename}, attempt ${retryCount + 1}):`, m);
+                        if (m.status === 'recognizing text') {
+                            progressBar.style.width = `${Math.round(m.progress * 100)}%`;
+                            progressText.textContent = `Scanning... ${Math.round(m.progress * 100)}%`;
+                        } else {
+                            progressText.textContent = m.status.replace('_', ' ').toUpperCase() + '...';
+                        }
+                    },
+                    workerPath: 'https://unpkg.com/tesseract.js@v4.1.1/dist/worker.min.js',
+                    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+                    corePath: 'https://unpkg.com/tesseract.js-core@v4.1.1/tesseract-core.wasm.js',
                 });
-                console.log('Grade Scan parameters set successfully');
-            } catch (paramError) {
-                console.warn('Parameter setting failed (common with Tesseract v4)—using defaults:', paramError);
-                // Fallback: Continue without custom params (still works)
-            }
 
-            progressText.textContent = 'Analyzing text...';
-
-            const { data: { text, confidence } } = await worker.recognize(processedImage);
-            await worker.terminate();
-
-            if (confidence < 50) {
-                throw new Error(`Low confidence (${Math.round(confidence)}%)—image may be blurry or unclear.`);
-            }
-
-            if (!text || !text.trim()) {
-                throw new Error('No text detected—try a clearer image with more contrast.');
-            }
-
-            resultText.value = text.trim();
-            progressText.textContent = `✅ Complete! Confidence: ${Math.round(confidence)}%`;
-            progressBar.style.width = '100%';
-            progressBar.style.backgroundColor = '#27ae60';
-
-            showToast(`Grade Scan success! Detected ${text.split(/\s+/).length} words across ${text.split('\n').length} lines.`, 'success');
-        } catch (err) {
-            console.error('Grade Scan attempt failed:', err);
-            if (retryCount < maxRetries) {
-                retryCount++;
-                progressText.textContent = `Retrying (${retryCount}/${maxRetries})...`;
-                setTimeout(attemptOcr, 1000); // Longer delay for retries
-                return;
-            }
-
-            // Final failure handling
-            progressText.textContent = `❌ Failed after ${maxRetries + 1} tries: ${err.message}`;
-            progressBar.style.width = '100%';
-            progressBar.style.backgroundColor = '#e74c3c';
-            resultText.value = `Error: ${err.message}\n\nTroubleshooting:\n• Ensure image has clear, dark text on light background\n• Avoid glare/shadows—use good lighting\n• Crop tightly to the text area\n• Try a different image format (JPG/PNG best)\n\n<button class="small-btn" onclick="document.getElementById('gradeScanFileInput').click(); resetGradeScanSection();">📁 Select New File</button>`;
-
-            // Append retry button dynamically
-            const existingBtn = resultText.parentNode.querySelector('.small-btn');
-            if (!existingBtn) {
-                const btn = document.createElement('button');
-                btn.className = 'small-btn';
-                btn.textContent = '🔄 Retry Scan';
-                btn.style.marginTop = '10px';
-                btn.onclick = () => {
-                    document.getElementById('ocrFileInput').click();
-                    resetOcrSection();
-                };
-                resultText.parentNode.appendChild(btn);
-            }
-
-            showToast('Grade Scan failed—see tips above. Manual entry works too!', 'error');
-        }
-    };
-
-    attemptOcr();
-}
-
-// UPDATED: Super flexible parsing (handles tables, lists, messy text)
-function parseAndAddScannedGrades() {
-    const text = document.getElementById('gradeScanResultText').value;
-    if (!text) return showToast('Run Grade Scan first!', 'error');
-
-    // Split into lines, keeping original spacing for table-like structures
-    const lines = text.split(/[\n\r]+/).map(line => line.trim()).filter(line => line.length > 2);
-
-    if (lines.length === 0) return showToast('No readable lines found.', 'error');
-
-    console.log('Parsing', lines.length, 'lines');
-    const { added, skipped } = addParsedGrades(lines);
-
-    if (added > 0) {
-        showToast(`${added} subjects added or updated (${skipped} lines skipped).`, 'success');
-    } else {
-        showToast(`No grade data could be parsed (${skipped} lines skipped). Try a clearer image or check the text.`, 'warning');
-    }
-
-    showSection('grades');
-}
-
-function addParsedGrades(lines) {
-    let added = 0, skipped = 0;
-    let columnMap = {}; // Maps detected column index to table column index (0-7)
-
-    // Column header variations
-    const headerSynonyms = {
-        0: ['1st', 'p1', 'pd1'],
-        1: ['2nd', 'p2', 'pd2'],
-        2: ['3rd', 'p3', 'pd3'],
-        3: ['exam1', 'ex1', 'sem1exam', '1stexam'],
-        4: ['4th', 'p4', 'pd4'],
-        5: ['5th', 'p5', 'pd5'],
-        6: ['6th', 'p6', 'pd6'],
-        7: ['finalexam', 'final', 'ex2', 'sem2exam']
-    };
-
-    // First, try to find a header row to create a column map
-    const headerLineIndex = lines.findIndex(line => {
-        const lowerLine = line.toLowerCase().replace(/[^a-z0-9\s]/g, '');
-        return lowerLine.includes('period') || lowerLine.includes('pd') || lowerLine.includes('exam');
-    });
-
-    if (headerLineIndex !== -1) {
-        const headerLine = lines[headerLineIndex];
-        const headerParts = headerLine.split(/\s{2,}|[\t]/).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, '')); // Split on multiple spaces or tabs
-
-        headerParts.forEach((part, index) => {
-            for (const [key, synonyms] of Object.entries(headerSynonyms)) {
-                if (synonyms.some(s => part.includes(s))) {
-                    columnMap[index] = parseInt(key);
-                    break;
+                if (!worker || typeof worker.setParameters !== 'function') {
+                    throw new Error('OCR worker failed to initialize—try refreshing the page.');
                 }
+
+                try {
+                    await worker.setParameters({
+                        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz :.,-()[]%',
+                        tessedit_pageseg_mode: '3',
+                        tessedit_ocr_engine_mode: '1',
+                    });
+                } catch (paramError) {
+                    console.warn('Parameter setting failed:', paramError);
+                }
+
+                progressText.textContent = 'Analyzing text...';
+                const { data: { text, confidence } } = await worker.recognize(processedImage);
+                await worker.terminate();
+
+                if (confidence < 50) throw new Error(`Low confidence (${Math.round(confidence)}%)—image may be blurry.`);
+                if (!text || !text.trim()) throw new Error('No text detected—try a clearer image.');
+
+                resultText.value = text.trim();
+                progressText.textContent = `✅ Complete! Confidence: ${Math.round(confidence)}%`;
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#27ae60';
+                showToast(`OCR success! Detected ${text.split(/\s+/).length} words.`, 'success');
+
+                // NEW: Highlight the textarea to encourage editing
+                resultText.style.transition = 'box-shadow 0.3s ease-in-out';
+                resultText.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.5)';
+                setTimeout(() => {
+                    resultText.style.boxShadow = 'none';
+                }, 2000);
+
+            } catch (err) {
+                console.error('OCR attempt failed:', err);
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    progressText.textContent = `Retrying (${retryCount}/${maxRetries})...`;
+                    setTimeout(attemptOcr, 1000);
+                    return;
+                }
+
+                progressText.textContent = `❌ Failed: ${err.message}`;
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#e74c3c';
+                resultText.value = `Error: ${err.message}\n\nTroubleshooting:\n• Use a clear, well-lit image.\n• Crop tightly to the text.\n• Try a different format (JPG/PNG).`;
+                showToast('OCR failed. See tips or enter grades manually.', 'error');
+            }
+        };
+        attemptOcr();
+    },
+
+    async preprocessImage(reader) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.getElementById('ocrPreprocessCanvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = Math.min(img.width, 1200);
+                canvas.height = (img.height / img.width) * canvas.width;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    data[i] = data[i + 1] = data[i + 2] = avg;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                ctx.filter = 'contrast(150%) brightness(120%)';
+                ctx.drawImage(canvas, 0, 0);
+
+                console.log('Preprocessing complete.');
+                resolve(canvas.toDataURL('image/png'));
+            };
+            img.onerror = reject;
+            img.src = reader.result;
+        });
+    },
+
+    parseAndAddGrades() {
+        const text = document.getElementById('ocrResultText').value.trim();
+        if (!text) return showToast('Run OCR first!', 'error');
+
+        const cleanedText = text.replace(/\s+/g, ' ').trim();
+        const lines = cleanedText.split(/[\n\r]+/).map(line => line.trim()).filter(line => line.length > 2);
+
+        if (lines.length === 0) return showToast('No readable lines found.', 'error');
+
+        const { added, skipped } = this._addParsedGrades(lines);
+
+        if (added === 0) {
+            showToast(`No matches (${skipped} lines skipped). Edit text manually or retry OCR.`, 'warning');
+        } else {
+            showToast(`${added} subjects added (${skipped} skipped).`, 'success');
+            showSection('grades');
+        }
+    },
+
+    // "Private" helper methods
+    _isValidFile(file) {
+        const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/heic'];
+        const isImage = imageTypes.includes(file.type) || file.type.startsWith('image/');
+        const isPDF = file.type === 'application/pdf';
+        return isImage || isPDF;
+    },
+
+    async _getImageFromFile(file) {
+        if (file.type === 'application/pdf') {
+            showToast('PDF detected! Please convert to an image (e.g., JPG, PNG) first.', 'info');
+            throw new Error('PDF not supported yet—please convert to an image.');
+        }
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    },
+
+    _setupDropZone() {
+        const dropZone = document.getElementById('ocrDropZone');
+        const fileInput = document.getElementById('ocrFileInput');
+
+        dropZone.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') fileInput.click();
+        });
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            dropZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            const validFiles = files.filter(f => this._isValidFile(f));
+            if (validFiles.length === 0) {
+                return showToast('Drop valid images (JPG, PNG, etc.).', 'error');
+            }
+            const dt = new DataTransfer();
+            dt.items.add(validFiles[0]);
+            fileInput.files = dt.files;
+            this.handleFileSelect({ target: fileInput });
+        });
+    },
+
+    _addParsedGrades(lines) {
+        let added = 0, skipped = 0;
+
+        lines.forEach(line => {
+            // Enhanced pattern to find a subject name followed by a mix of numbers, dashes, or common non-word characters.
+            const subjectPattern = /^([A-Za-z\s]{3,})/; // A subject must have at least 3 letters
+            const subjectMatch = line.match(subjectPattern);
+
+            if (!subjectMatch) {
+                skipped++;
+                return; // Skip lines that don't start with a plausible subject name
+            }
+
+            const subject = subjectMatch[1].trim().replace(/[^\w\s]/g, '').substring(0, 25);
+            const remainingLine = line.substring(subjectMatch[0].length);
+
+            // Tokenize the rest of the line, splitting by spaces, commas, etc.
+            // This handles various delimiters and missing values better.
+            const tokens = remainingLine.trim().split(/[\s,;:\t]+/);
+
+            const scores = tokens.map(token => {
+                // A token is a score if it's a number between 0-120.
+                // OCR can sometimes read '100' as '1 0 0', so we handle single digits.
+                const num = parseFloat(token);
+                if (!isNaN(num) && num >= 0 && num <= 120) {
+                    return num;
+                }
+                // A token is a missing value if it's a dash, or a non-numeric/short string.
+                if (token === '-' || token === '_' || token.trim() === '') {
+                    return ''; // Represents an empty score input
+                }
+                return null; // This token is neither a score nor a valid empty placeholder.
+            }).filter(item => item !== null); // Filter out invalid tokens
+
+            if (scores.length > 0 && subject) {
+                addSubjectRow(subject);
+                const inputs = document.querySelectorAll('#gradeTable tbody tr:last-child input[type="number"]');
+                
+                // Map the parsed scores to the available input fields
+                scores.slice(0, inputs.length).forEach((score, i) => {
+                    if (typeof score === 'number') {
+                        inputs[i].value = Math.max(0, Math.min(100, Math.round(score))); // Clamp to 0-100
+                        updateScoreColor(inputs[i]);
+                    } else {
+                        inputs[i].value = ''; // Set as empty for placeholders like '-'
+                    }
+                });
+                added++;
+            } else {
+                skipped++;
             }
         });
-        console.log('Detected column map:', columnMap);
+
+        return { added, skipped };
     }
-
-    // Now, parse all lines for subject and scores
-    lines.forEach(line => {
-        // A line is a potential subject row if it starts with a letter and contains at least one number.
-        if (!/^[A-Za-z]/.test(line) || !/\d/.test(line)) {
-            skipped++;
-            return;
-        }
-
-        const parts = line.split(/\s{2,}|[\t,;:]/).map(p => p.trim()).filter(Boolean); // Split on multiple spaces, tabs, or delimiters
-        const subject = parts[0].replace(/[^\w\s]/g, '').substring(0, 25);
-        const scores = parts.slice(1).map(s => parseFloat(s)).filter(s => !isNaN(s) && s >= 0 && s <= 120);
-
-        if (subject && scores.length > 0) {
-            let rowAdded = false;
-            // Check if subject already exists to update it
-            const existingRows = document.querySelectorAll('#gradeTable tbody tr');
-            let targetRow = null;
-            existingRows.forEach(row => {
-                const subjectInput = row.querySelector('input[type="text"]');
-                if (subjectInput && subjectInput.value.toLowerCase() === subject.toLowerCase()) {
-                    targetRow = row;
-                }
-            });
-
-            if (!targetRow) {
-                addSubjectRow(subject);
-                targetRow = document.querySelector('#gradeTable tbody tr:last-child');
-                rowAdded = true;
-            }
-
-            const inputs = targetRow.querySelectorAll('input[type="number"]');
-
-            // If we have a column map, use it. Otherwise, fill sequentially.
-            if (Object.keys(columnMap).length > 0) {
-                scores.forEach((score, i) => {
-                    const tableColIndex = columnMap[i + 1]; // +1 because first part is subject
-                    if (tableColIndex !== undefined && inputs[tableColIndex]) {
-                        inputs[tableColIndex].value = Math.max(0, Math.min(100, Math.round(score)));
-                        updateScoreColor(inputs[tableColIndex]);
-                    }
-                });
-            } else { // Fallback to sequential filling
-                scores.slice(0, inputs.length).forEach((score, i) => {
-                    if (inputs[i].value === '') { // Only fill empty cells
-                        inputs[i].value = Math.max(0, Math.min(100, Math.round(score)));
-                        updateScoreColor(inputs[i]);
-                    }
-                });
-            }
-
-            if (rowAdded) added++;
-        } else {
-            skipped++;
-        }
-    });
-
-    return { added, skipped };
-}
+};
 
  // JS Fallback for www redirect (uncomment if no custom domain)
 /*
@@ -838,8 +681,8 @@ if (window.location.hostname === 'www.suahco4.github.io') {
 function updateMetaForSection(section) {
     const titles = {
         'grades': 'Grade Calculator | Free Online GPA & Average Tool with PDF/CSV Export',
-        'help': 'Help & Guide | Grade Calculator - Free GPA Tool',
-        'grade-scan': 'Advanced Grade Scan | Grade Calculator - Scan from Image',
+        'help': 'Help & Guide | Grade Calculator - Free GPA Tool', // Changed from ocr
+        'ocr': 'Advanced OCR | Grade Calculator - Scan from Image',
         'settings': 'Settings | Grade Calculator - Customize Your Experience',
         'profile': 'Profile | Grade Calculator - Manage Account & Sessions',
         'contact': 'Contact Us | Grade Calculator - Get Support',
@@ -854,7 +697,7 @@ function updateMetaForSection(section) {
     if (metaDesc) {
         const descriptions = {
             'grades': 'Track grades across periods & exams with our free Grade Matrix Calculator. Calculate averages, export PDF/CSV, save sessions. Mobile-friendly & secure.',
-            'help': 'Learn to use Grade Calculator: add subjects, calculate averages, export reports. Free GPA tool for students.',
+            'help': 'Learn to use Grade Calculator: add subjects, calculate averages, export reports. Free GPA tool for students.', // Changed from ocr
             'ai': 'Chat with our assistant for grade advice, study tips, and tool help.',
             'contact': 'Contact Grade Calculator team for support on our free GPA tool.',
             'privacy': 'Grade Calculator Privacy Policy: how we protect your data.',
@@ -1048,27 +891,20 @@ function addSubjectRow(defaultName = '') {
     
     // Build the row with the new column order
     let scoreInputs1 = '';
-    scoreInputs1 += `<td data-label="1st Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
-    scoreInputs1 += `<td data-label="2nd Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
-    scoreInputs1 += `<td data-label="3rd Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
-    scoreInputs1 += `<td data-label="1st Exam"><input type="number" min="0" max="100" placeholder="Score"></td>`;
-
+    for (let i = 0; i < 4; i++) scoreInputs1 += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
     let scoreInputs2 = '';
-    scoreInputs2 += `<td data-label="4th Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
-    scoreInputs2 += `<td data-label="5th Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
-    scoreInputs2 += `<td data-label="6th Period"><input type="number" min="0" max="100" placeholder="Score"></td>`;
-    scoreInputs2 += `<td data-label="Final Exam"><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    for (let i = 4; i < 8; i++) scoreInputs2 += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
 
     row.innerHTML = `
-        <td data-label="Subject">
+        <td>
             <input type="text" value="${defaultName}" placeholder="Enter subject name">
             <button class="remove-btn">Remove</button>
         </td>
         ${scoreInputs1}
-        <td class="sem1-avg average-cell" data-label="1st Sem Avg">0.00</td>
+        <td class="sem1-avg average-cell">0.00</td>
         ${scoreInputs2}
-        <td class="sem2-avg average-cell" data-label="2nd Sem Avg">0.00</td>
-        <td class="final-avg average-cell" data-label="Final Avg">0.00</td>
+        <td class="sem2-avg average-cell">0.00</td>
+        <td class="final-avg average-cell">0.00</td>
     `;
     tbody.appendChild(row);
     clearError();
@@ -1448,8 +1284,8 @@ function logout() {
 // Updated Profile functions (integrates with Firebase)
 function loadProfile() {
     if (currentUser) {
-        document.getElementById('userName').textContent = currentUser.displayName || 'Guest User';
-        document.getElementById('userEmail').textContent = currentUser.email || '';
+        document.getElementById('userName').value = currentUser.displayName || '';
+        document.getElementById('userEmail').value = currentUser.email || '';
         const picSrc = currentUser.photoURL || 'Suahco4.png';
         document.getElementById('profilePicPreview').src = picSrc;
         document.getElementById('navProfilePic').src = picSrc;
@@ -1462,7 +1298,7 @@ function loadProfile() {
 
 function saveProfile() {
     if (!currentUser) return alert('Please log in first.');
-    const name = document.getElementById('updateNameInput').value;
+    const name = document.getElementById('userName').value;
     const { updateProfile } = window;
     updateProfile(currentUser, { displayName: name })
         .then(() => {
@@ -1490,15 +1326,11 @@ function saveSession() {
             scores: scoreInputs
         });
     });
-    const schoolName = localStorage.getItem('schoolName') || '';
-    const studentName = currentUser ? currentUser.displayName : 'Guest';
     const session = {
         id: Date.now(),
         timestamp: new Date().toLocaleString(),
         data: tableData,
-        overallAvg: lastOverallAvg,
-        schoolName: schoolName, // NEW: Save school name
-        studentName: studentName  // NEW: Save student name
+        overallAvg: lastOverallAvg
     };
     let sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
     sessions.unshift(session); // Add to front
@@ -1523,15 +1355,11 @@ function generateCurrentSessionQR() {
 
     if (tableData.length === 0) return alert('No data in the table to generate a QR code.');
 
-    const schoolName = localStorage.getItem('schoolName') || '';
-    const studentName = currentUser ? currentUser.displayName : 'Guest';
     const session = {
         id: 'current-' + Date.now(),
         timestamp: new Date().toLocaleString() + ' (Unsaved)',
         data: tableData,
-        overallAvg: lastOverallAvg,
-        schoolName: schoolName,
-        studentName: studentName
+        overallAvg: lastOverallAvg
     };
     generateQRForSession(session);
 }
@@ -1544,8 +1372,8 @@ function loadSessions() {
         const li = document.createElement('li');
         li.className = 'session-item';
 
-        const span = document.createElement('span'); // UPDATED: Show student name if available
-        span.textContent = `${session.studentName || 'Session'} - ${session.timestamp} (Avg: ${session.overallAvg}%)`;
+        const span = document.createElement('span');
+        span.textContent = `${session.timestamp} (Avg: ${session.overallAvg}%)`;
 
         const div = document.createElement('div');
 
@@ -1593,15 +1421,10 @@ function loadSession(id) {
                 if (inputs[i]) inputs[i].value = score;
             });
         });
-        // NEW: Restore school name from session
-        if (session.schoolName) {
-            localStorage.setItem('schoolName', session.schoolName);
-            document.getElementById('schoolNameInput').value = session.schoolName;
-        }
         // NEW: Auto-recalculate after DOM update
         setTimeout(() => calculateAverages(), 200);
         showSection('grades');
-        showToast(`Session for ${session.studentName || 'user'} loaded!`, 'success');
+        alert('Session loaded!');
     }
 }
 
@@ -1789,11 +1612,11 @@ function showSection(section) {
         loadProfile();
     } else if (section === 'ai') { // UPDATED: Now opens floating chat instead
         toggleFloatingChat();
-        return; // Don't proceed to show full section
-    } else if (section === 'grade-scan') {
-        const gradeScanSec = document.getElementById('grade-scan-section');
-        if (gradeScanSec) gradeScanSec.style.display = 'block';
-        // resetGradeScanSection(); // Let's not reset, so user can see previous result
+        return; // Don't proceed to show full section // Changed from ocr
+    } else if (section === 'ocr') {
+        const ocrSec = document.getElementById('ocr-section');
+        if (ocrSec) ocrSec.style.display = 'block';
+        // resetOcrSection(); // Let's not reset, so user can see previous result
     } else if (section === 'contact') {
         const contactSec = document.getElementById('contact-section');
         if (contactSec) contactSec.style.display = 'block';
@@ -1867,13 +1690,6 @@ function loadSettings() {
     // Date in export
     const dateInExport = localStorage.getItem('dateInExport') !== 'false';
     document.getElementById('dateInFilename').checked = dateInExport;
-}
-
-// NEW: Save selected AI model
-function saveAiModel() {
-    const model = document.getElementById('aiModelSelect').value;
-    localStorage.setItem('aiModel', model);
-    showToast(`AI model set to ${model}.`, 'info');
 }
 
 // Toggle dark mode
@@ -1964,9 +1780,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('calculate').addEventListener('click', calculateAverages);
     document.getElementById('resetSemesters').addEventListener('click', resetSemesters); // NEW
 
-    // NEW: Grade Scan Event Listeners
-    setupGradeScanDropZone();
-    document.getElementById('gradeScanFileInput').addEventListener('change', handleGradeScanFileSelect);
+    // NEW: OCR Event Listeners
+    GradeScan.init();
     
     // Event delegation for remove buttons (dynamic)
     document.addEventListener('click', function(e) {
