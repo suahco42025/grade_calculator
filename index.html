@@ -86,8 +86,6 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script> <!-- For generating QRs -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script> <!-- For scanning QRs -->
     <!-- NEW: Tesseract.js for OCR -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
-    
     <!-- Load Firebase config from generated file -->
     <script src="firebase-config.js"></script>
 
@@ -159,7 +157,6 @@
                 <li><a href="#" onclick="showSection('profile')">Profile</a></li>
                 <li><a href="#" onclick="showSection('settings')">Settings</a></li>
                 <li><a href="#" onclick="showSection('help')">Help</a></li>
-                <li><a href="#" onclick="showSection('ocr')">Grade Scan</a></li>
                 <li><a href="#" onclick="showSection('contact')">Contact</a></li>
             </ul>
             <div class="nav-profile">
@@ -217,27 +214,18 @@
         </div>
     </div>
 
-    <!-- NEW: Grade Scan Camera Modal -->
-    <div id="ocrCameraModal" class="qr-modal">
-        <div class="qr-modal-content">
-            <span class="qr-close" onclick="GradeScan.closeCameraModal()">&times;</span>
-            <h3>📷 Capture Grade Sheet</h3>
-            <p>Position the document in the frame and hold steady.</p>
-            <video id="ocrCameraVideo" autoplay playsinline></video>
-            <div id="ocrCameraStatus" class="qr-status">Loading camera...</div>
-            <button onclick="GradeScan.captureImage()" class="small-btn">Capture Image</button>
-            <button onclick="GradeScan.closeCameraModal()" class="small-btn secondary-btn">Cancel</button>
-        </div>
-    </div>
-    
     <!-- NEW: Hidden file input for Grade Scan -->
         <div class="container">
             <!-- Wrapped: Grades Section -->
         <section id="grades-section" class="grades-section active">
             <div class="grades-header">
                 <div class="controls">
-                    <button id="addSubject" title="Add a new subject row">➕ Add Subject</button>
-                    <button id="scanGradesBtn" onclick="showSection('ocr')" title="Scan grades from an image">📷 Scan Grades</button>
+                    <button id="addSubject" title="Add a new subject row">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span>Add Subject</span>
+                    </button>
                     <div class="download-buttons">
                         <button id="downloadBtn" style="display: none;" onclick="downloadCSV()" title="Export as CSV file">📄 CSV</button>
                         <button id="pdfBtn" style.display="none;" onclick="downloadPDF()" title="Export as PDF file">📄 PDF</button>
@@ -316,47 +304,6 @@
                 </div>
                 <div id="aiStatus" class="ai-status"></div>
                 <p style="text-align: center; font-size: 12px; color: #999;">Note: Your chats are sent to OpenAI for processing. No data is stored.</p>
-            </div>
-            <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
-        </section>
-
-        <!-- NEW: Advanced Grade Scan Section -->
-        <section id="ocr-section" class="ocr-section" style="display: none;">
-            <h1>Advanced Grade Scan - Scan Grades</h1>
-            <canvas id="ocrPreprocessCanvas" style="display: none;"></canvas> <!-- Hidden canvas for image processing -->
-            <div class="ocr-content">
-                <!-- Left Column: Controls -->
-                <div class="ocr-controls">
-                    <div id="ocrDropZone" class="ocr-drop-zone">
-                        <div class="ocr-drop-icon">📷</div>
-                        <p>Drag & Drop an image here</p>
-                        <p class="ocr-drop-separator">or</p>
-                        <button type="button" class="ocr-select-btn" onclick="document.getElementById('ocrFileInput').click()">Select Image</button>
-                        <button type="button" class="ocr-camera-btn" onclick="GradeScan.startCamera()">Take a Picture</button>
-                        <input type="file" id="ocrFileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" style="display: none;">
-                    </div>
-                    <div class="ocr-instructions">
-                        <h3>How to Get the Best Results:</h3>
-                        <ul>
-                            <li>Use a clear, well-lit image of your grade sheet.</li>
-                            <li>Ensure the text is horizontal and not skewed.</li>
-                            <li>Crop the image to include only the grades table.</li>
-                        </ul>
-                    </div>
-                </div>
-                <!-- Right Column: Results -->
-                <div class="ocr-results">
-                    <div id="ocrPreviewContainer" class="ocr-preview-container" style="display: none;">
-                        <img id="ocrPreviewImage" src="#" alt="Image preview">
-                    </div>
-                    <div id="ocrProgress" class="ocr-progress" style="display: none;">
-                        <div id="ocrProgressBar" class="ocr-progress-bar"></div>
-                        <span id="ocrProgressText"></span>
-                    </div>
-                    <p class="small-text" style="text-align: center; margin-bottom: 5px;">Review and edit the text below for accuracy before parsing.</p>
-                    <textarea id="ocrResultText" placeholder="Recognized text will appear here..."></textarea>
-                    <button id="parseOcrBtn" class="small-btn" onclick="GradeScan.parseAndAddGrades()">Parse & Add to Table</button>
-                </div>
             </div>
             <button onclick="showSection('grades')" class="back-btn">← Back to Grades</button>
         </section>

@@ -3,7 +3,7 @@ body {
     /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; */
     background-color: #f4f7fa;
     margin: 0;
-    padding: 20px;
+    padding: 10px;
     color: #333;
 }
 .container {
@@ -12,7 +12,7 @@ body {
     background: white;
     border-radius: 12px; /* Slightly larger, more modern radius */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 30px;
+    padding: 15px;
     overflow-x: auto; /* For horizontal scroll on small screens */
     margin-top: 70px; /* Clearance for fixed nav */
     position: relative;
@@ -45,7 +45,7 @@ h1 {
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     border: 1px solid #e9ecef;
-    padding: 20px;
+    padding: 10px;
     overflow-x: auto;
 }
 /* NEW: Grades Footer */
@@ -60,10 +60,10 @@ button {
     background-color: #3498db;
     color: white;
     border: none;
-    padding: 15px 30px; /* Increased from 10px 20px */
+    padding: 8px 16px;
     border-radius: 0.3rem;
     cursor: pointer;
-    font-size: 18px; /* Increased from 16px */
+    font-size: 14px;
     transition: all 0.3s ease;
     min-width: 7.5rem; /* Added for consistency on main buttons */
 }
@@ -71,22 +71,56 @@ button:hover {
     background-color: #2980b9;
 }
 #addSubject {
-    background-color: #27ae60;
+    background-color: #3498db; /* Changed color to distinguish from Calculate */
+    position: fixed; /* Make it float */
+    bottom: 60px; /* Position it above the chat button */
+    left: 10px;
+    padding: 12px 20px;
+    font-size: 16px;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    z-index: 150;
+    border-radius: 50px; /* Make it pill-shaped */
+    display: flex; /* Align icon and text */
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Space between icon and text */
+    animation: glowing-blue 2.5s infinite ease-in-out; /* Add the blue glowing animation */
 }
 #addSubject:hover {
-    background-color: #229954;
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+    animation-play-state: paused; /* Pause the glow on hover */
 }
 #calculate {
     background-color: #27ae60;
-    grid-column: 2 / 3; /* Center the button in the footer grid */
-    padding: 15px 40px;
-    font-size: 20px;
+    position: fixed; /* Make it float */
+    bottom: 0px; /* Position it above the chat button */
+    left: 10px;
+    padding: 12px 20px;
+    font-size: 16px;
     box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+    z-index: 150; /* Ensure it's above other content but below modals */
+    border-radius: 50px; /* Make it pill-shaped */
+    animation: glowing 2.5s infinite ease-in-out; /* Add the glowing animation */
 }
 #calculate:hover {
     background-color: #229954;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+    animation-play-state: paused; /* Pause the glow on hover for a stable effect */
+}
+/* NEW: Keyframes for the glowing effect */
+@keyframes glowing {
+    0% { box-shadow: 0 4px 20px rgba(39, 174, 96, 0.4); }
+    50% { box-shadow: 0 8px 35px rgba(39, 174, 96, 0.8); }
+    100% { box-shadow: 0 4px 20px rgba(39, 174, 96, 0.4); }
+}
+/* NEW: Keyframes for the blue glowing effect */
+@keyframes glowing-blue {
+    0% { box-shadow: 0 4px 20px rgba(52, 152, 219, 0.4); }
+    50% { box-shadow: 0 8px 35px rgba(52, 152, 219, 0.8); }
+    100% { box-shadow: 0 4px 20px rgba(52, 152, 219, 0.4); }
 }
 /* Download button styles */
 .download-buttons {
@@ -107,36 +141,51 @@ button:hover {
 }
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate; /* Changed for rounded corners */
+    border-spacing: 0;
     margin-bottom: 20px;
+    font-size: 13px;
 }
 th, td {
-    padding: 20px; /* Increased from 10px */
+    padding: 10px 8px; /* Reduced padding */
     text-align: center;
-    border: 0.0625rem solid #ddd;
-    font-size: 16px; /* Added for larger text */
+    border-bottom: 1px solid #e9ecef; /* Use only bottom borders for a cleaner look */
+    vertical-align: middle; /* Better alignment */
 }
 th {
     background-color: #34495e;
     color: white;
     position: sticky;
     top: 0;
+    font-size: 12px; /* Smaller for a more refined header */
+    text-transform: uppercase; /* Professional look */
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #3498db; /* Accent border */
+}
+/* Add rounded corners to the first and last header cells */
+th:first-child {
+    border-top-left-radius: 8px;
+}
+th:last-child {
+    border-top-right-radius: 8px;
 }
 .subject-th {
     background-color: #2c3e50;
     text-align: left;
 }
-input[type="text"], input[type="number"] {
-    width: 100px; /* Increased from 70px for numbers */
-    padding: 0.625rem; /* Increased from 5px */
-    border: 0.0625rem solid #ddd;
-    border-radius: 0.2rem;
+input[type="text"],
+input[type="number"] {
+    width: 75px; /* Reduced width */
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
     box-sizing: border-box;
     text-align: center;
-    font-size: 16px; /* Added to match table */
+    font-size: 13px;
+    transition: border-color 0.3s, box-shadow 0.3s; /* Smooth focus effect */
 }
 input[type="text"] {
-    width: 150px; /* Increased from 120px */
+    width: 130px;
 }
 /* Red highlight for scores below threshold */
 input.low-score {
@@ -144,23 +193,30 @@ input.low-score {
     border-color: #f44336;
     color: #d32f2f;
 }
+/* Style for input focus */
+input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
 .remove-btn {
     background-color: #e74c3c;
     color: white;
     border: none;
-    padding: 0.5rem 0.9375rem; /* Increased from 3px 8px */
+    padding: 5px 10px;
     border-radius: 0.2rem;
     cursor: pointer;
-    font-size: 16px; /* Increased from 12px */
+    font-size: 12px;
     margin-left: 5px;
 }
 .remove-btn:hover {
     background-color: #c0392b;
 }
-.average-cell {
-    background-color: #f8f9fa;
+.average-cell, .period-avg-row td {
+    background-color: #f8f9fa; /* Consistent light background for all averages */
     font-weight: bold;
     color: #27ae60;
+    font-size: 15px;
 }
 .average-cell small {
     font-size: 12px;
@@ -168,7 +224,6 @@ input.low-score {
     display: block;
 }
 .period-avg-row {
-    background-color: #e8f4fd;
     font-weight: bold;
 }
 .overall-average {
@@ -1382,99 +1437,6 @@ body.dark-mode .qr-modal-content {
 body.dark-mode .qr-modal video {
     border-color: #5a6c7d;
 }
-/* NEW: OCR Section Styling */
-.ocr-section {
-    padding: 20px 0; /* Changed from ocr-section */
-}
-.ocr-content {
-    max-width: 800px;
-    margin: 20px auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px; /* Changed from ocr-content */
-}
-.grade-scan-controls, .grade-scan-results {
-    display: flex;
-    flex-direction: column;
-    gap: 20px; /* Changed from ocr-controls, ocr-results */
-}
-.grade-scan-results {
-    justify-content: space-between;
-}
-.grade-scan-instructions {
-    background: #e8f4fd;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #bde0fe;
-}
-.grade-scan-instructions h3 {
-    margin-top: 0;
-    color: #2c3e50;
-}
-.grade-scan-drop-zone {
-    border: 2px dashed #3498db;
-    border-radius: 8px;
-    padding: 40px;
-    text-align: center;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1;
-}
-.grade-scan-drop-zone:hover, .grade-scan-drop-zone.dragover {
-    background-color: #e8f4fd;
-    border-style: solid;
-}
-.grade-scan-drop-icon {
-    font-size: 48px;
-    color: #3498db;
-}
-.grade-scan-drop-separator {
-    color: #aaa;
-    margin: 10px 0;
-}
-.grade-scan-select-btn {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px; /* Changed from ocr-select-btn */
-    transition: background-color 0.3s;
-}
-.grade-scan-select-btn:hover {
-    background-color: #2980b9;
-}
-.grade-scan-camera-btn {
-    background-color: #1abc9c;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s; /* Changed from ocr-camera-btn */
-    margin-top: 10px;
-}
-.grade-scan-camera-btn:hover {
-    background-color: #16a085;
-}
-.grade-scan-preview-container {
-    text-align: center;
-    background: #f8f9fa;
-    padding: 10px;
-    border-radius: 8px;
-}
-.grade-scan-preview-container img {
-    max-width: 100%;
-    max-height: 300px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
 .grade-scan-progress {
     width: 100%;
     background-color: #f3f3f3;
@@ -1495,37 +1457,6 @@ body.dark-mode .qr-modal video {
     text-align: center;
     line-height: 30px;
     color: #333;
-}
-.ocr-content textarea {
-    width: 100%;
-    height: 150px;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-sizing: border-box;
-    resize: vertical;
-    font-family: monospace;
-}
-body.dark-mode .ocr-drop-zone {
-    border-color: #5dade2;
-}
-body.dark-mode .ocr-drop-zone:hover {
-    background-color: #2c3e50;
-}
-body.dark-mode .ocr-instructions {
-    background: #2c3e50;
-    border-color: #5dade2;
-}
-@media (max-width: 768px) {
-    .ocr-content {
-        grid-template-columns: 1fr;
-    }
-}
-body.dark-mode .ocr-preview-container {
-    background: #2c3e50;
-}
-body.dark-mode .ocr-instructions h3 {
-    color: #ecf0f1;
 }
 body.dark-mode .grade-table-card {
     background: #34495e;
