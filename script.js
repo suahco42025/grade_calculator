@@ -112,7 +112,7 @@ async function sendMessageToAssistant(chatType = 'full') {
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo', // This is mapped to a Groq model in the backend
                 messages: [
-                    { role: 'system', content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!' },
+                    { role: 'system', content: 'Your name is Mother Suah and you are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!' },
                     { role: 'user', content: `${context} User query: ${message}` }
                 ],
                 max_tokens: 150, temperature: 0.7
@@ -1482,4 +1482,5 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('qrModal').addEventListener('click', function(e) {
         if (e.target === this) closeQRModal();
     });
+
 });
