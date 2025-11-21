@@ -764,52 +764,6 @@ footer {
 .profile-info-grid.active {
     display: grid;
 }
-.profile-user-card {
-    background: #f8f9fa;
-    border: 1px solid #e0e6ec;
-    border-radius: 8px;
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-.profile-pic-container {
-    position: relative;
-    margin-bottom: 15px;
-}
-.profile-card {
-    transition: transform 0.3s, box-shadow 0.3s;
-}
-.profile-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.07);
-}
-.profile-card {
-    background: #f8f9fa;
-    border: 1px solid #e0e6ec;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    margin-bottom: 15px;
-    padding: 25px;
-}
-.profile-card h3 {
-    margin: 0 0 20px 0;
-    font-size: 18px;
-}
-.profile-details-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-.profile-pic-preview {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid white;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
 .change-pic-btn {
     position: absolute;
     bottom: 5px;
@@ -1005,6 +959,21 @@ body.dark-mode .login-section {
     right: 15px;
     font-size: 24px;
     cursor: pointer;
+}
+/* NEW: Styles for the QR Display Modal */
+#qrDisplayCanvas {
+    margin: 20px auto;
+    display: block;
+    border: 5px solid white;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    max-width: 100%;
+}
+.qr-modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
 }
 /* UPDATED: Auth Form Styling */
 .auth-form {
@@ -1402,20 +1371,6 @@ body.dark-mode .login-section {
     .floating-chat-header h4 {
         font-size: 14px;
     }
-    /* NEW: QR Modal Mobile */
-    .qr-modal-content {
-        margin: 10% auto;
-        width: 95%;
-    }
-}
-/* Dark mode for floating chat */
-body.dark-mode .floating-chat-window {
-    background: #34495e;
-    border-color: #5a6c7d;
-    color: #ecf0f1;
-}
-body.dark-mode .floating-chat-messages {
-    background: #3d566e;
 }
 body.dark-mode .floating-chat-input {
     background: #34495e;
@@ -1428,14 +1383,6 @@ body.dark-mode .floating-chat-input input {
 body.dark-mode .floating-chat-status {
     color: #a0a0a0;
     background: #3d566e;
-}
-/* NEW: Dark mode for QR modal */
-body.dark-mode .qr-modal-content {
-    background-color: #34495e;
-    color: #ecf0f1;
-}
-body.dark-mode .qr-modal video {
-    border-color: #5a6c7d;
 }
 .grade-scan-progress {
     width: 100%;

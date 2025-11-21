@@ -13,10 +13,6 @@ let isGPAMode = false; // GPA toggle state
 let subjectBarChart = null;
 let gradePieChart = null;
 
-// NEW: QR Scanning Variables
-let videoStream = null;
-let qrScanningInterval = null;
-
 // REMOVED: Hardcoded OpenAI key - now handled via Vercel proxy (/api/openai)
 // Ensure you have /api/openai.js deployed on Vercel with OPENAI_API_KEY env var
 
@@ -112,7 +108,7 @@ async function sendMessageToAssistant(chatType = 'full') {
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo', // This is mapped to a Groq model in the backend
                 messages: [
-                    { role: 'system', content: 'Your name is Mother Suah and you are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!' },
+                    { role: 'system', content: 'You are a helpful AI assistant for the Grade Calculator tool. Provide concise, friendly advice on grades, study tips, GPA calculation, or tool usage. Keep responses under 150 words. Be encouraging!' },
                     { role: 'user', content: `${context} User query: ${message}` }
                 ],
                 max_tokens: 150, temperature: 0.7
@@ -217,118 +213,6 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
-
-// NEW: QR Scan Functions
-function startQRScan() {
-    const modal = document.getElementById('qrModal');
-    const status = document.getElementById('qrStatus');
-    modal.style.display = 'block';
-    status.textContent = 'Requesting camera access...';
-
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(stream => {
-            videoStream = stream;
-            const video = document.getElementById('qrVideo');
-            video.srcObject = stream;
-            video.play();
-            status.textContent = 'Scanning for QR code...';
-            startScanning(video);
-        })
-        .catch(err => {
-            console.error('Camera Error:', err);
-            status.textContent = 'Camera access denied. Please enable permissions.';
-        });
-}
-
-function startScanning(video) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    qrScanningInterval = setInterval(() => {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if (code) {
-                clearInterval(qrScanningInterval);
-                handleQRScan(code.data);
-            }
-        }
-    }, 500); // Scan every 500ms
-}
-
-function handleQRScan(data) {
-    try {
-        const session = JSON.parse(data);
-        if (session && session.data && session.timestamp) {
-            if (confirm(`Load session from ${session.timestamp}? This will overwrite current data.`)) {
-                // Load like manual session
-                document.querySelector('#gradeTable tbody').innerHTML = '';
-                session.data.forEach(item => {
-                    addSubjectRow(item.subject);
-                    const inputs = document.querySelectorAll('#gradeTable tbody tr:last-child input[type="number"]');
-                    item.scores.forEach((score, i) => {
-                        if (inputs[i]) inputs[i].value = score;
-                    });
-                });
-                setTimeout(() => {
-                    calculateAverages();
-                    document.querySelectorAll('#gradeTable input[type="number"]').forEach(updateScoreColor);
-                }, 100);
-                showSection('grades');
-                closeQRModal();
-                alert('Session loaded from QR!');
-            } else {
-                // If not confirmed, restart scanning
-                startScanning(document.getElementById('qrVideo'));
-            }
-        } else {
-            throw new Error('Invalid QR data');
-        }
-    } catch (err) {
-        console.error('QR Parse Error:', err);
-        document.getElementById('qrStatus').textContent = 'Invalid QR code. Try again.';
-        // Restart scanning after 2s without closing modal
-        setTimeout(() => startScanning(document.getElementById('qrVideo')), 2000);
-    }
-    // closeQRModal() moved to success path only
-}
-
-function closeQRModal() {
-    const modal = document.getElementById('qrModal');
-    modal.style.display = 'none';
-    if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-        videoStream = null;
-    }
-    if (qrScanningInterval) {
-        clearInterval(qrScanningInterval);
-        qrScanningInterval = null;
-    }
-}
-
-// NEW: Generate QR for Session (called after save)
-function generateQRForSession(session) {
-    if (!session || typeof session !== 'object') {
-        console.error('generateQRForSession called with invalid data:', session);
-        alert('Could not generate QR code: session data is missing.');
-        return;
-    }
-    const qrData = JSON.stringify(session);
-    const canvas = document.createElement('canvas');
-    QRCode.toCanvas(canvas, qrData, { width: 256 }, (err) => {
-        if (err) {
-            alert('QR Generation Failed: ' + err);
-            return;
-        }
-        const link = document.createElement('a');
-        link.download = `session-qr-${session.id}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-        alert('QR code downloaded! Print or share it to scan later.');
-    });
-}
 
  // JS Fallback for www redirect (uncomment if no custom domain)
 /*
@@ -571,8 +455,16 @@ function addSubjectRow(defaultName = '') {
 
 // Function to remove a row
 function removeRow(button) {
-    button.closest('tr').remove();
-    clearError();
+    const row = button.closest('tr');
+    if (!row) return;
+
+    const subjectInput = row.querySelector('input[type="text"]');
+    const subjectName = subjectInput && subjectInput.value.trim() ? `"${subjectInput.value.trim()}"` : "this subject";
+
+    if (confirm(`Are you sure you want to remove ${subjectName}? This action cannot be undone.`)) {
+        row.remove();
+        clearError();
+    }
 }
 
 // NEW: Reset semesters button
@@ -739,6 +631,71 @@ function downloadPDF() {
     }
 }
 
+// NEW: Grade Scan (OCR) Functionality
+async function scanGrades(file) {
+    if (!file) return;
+
+    showToast('🔍 Scanning image for grades...', 'info', 10000); // Show a longer toast
+
+    try {
+        const worker = await Tesseract.createWorker('eng', 1, {
+            logger: m => console.log(m) // Logs progress to the console
+        });
+
+        const { data: { text } } = await worker.recognize(file);
+        await worker.terminate();
+
+        showToast('✅ Scan complete! Parsing results...', 'success');
+        parseAndFillGrades(text);
+
+    } catch (error) {
+        console.error('OCR Error:', error);
+        showToast('❌ OCR failed. Please try a clearer image.', 'error');
+    }
+}
+
+function parseAndFillGrades(ocrText) {
+    const rows = document.querySelectorAll('#gradeTable tbody tr');
+    const subjects = [];
+    rows.forEach((row, index) => {
+        const subjectInput = row.querySelector('input[type="text"]');
+        if (subjectInput) {
+            subjects.push({ name: subjectInput.value.trim().toLowerCase(), rowIndex: index });
+        }
+    });
+
+    const lines = ocrText.split('\n');
+    let gradesFound = 0;
+
+    lines.forEach(line => {
+        const lowerLine = line.toLowerCase();
+        // Find which subject this line might be for
+        const foundSubject = subjects.find(s => lowerLine.includes(s.name) && s.name);
+
+        if (foundSubject) {
+            // Extract all numbers from the line that look like grades (0-100)
+            const scores = line.match(/\b(\d{1,2}|100)\b/g) || [];
+            const targetRow = rows[foundSubject.rowIndex];
+            const scoreInputs = targetRow.querySelectorAll('input[type="number"]');
+
+            // Fill scores into the inputs
+            scores.forEach((score, i) => {
+                if (scoreInputs[i]) {
+                    scoreInputs[i].value = score;
+                    updateScoreColor(scoreInputs[i]); // Highlight low scores
+                    gradesFound++;
+                }
+            });
+        }
+    });
+
+    if (gradesFound > 0) {
+        showToast(`🎉 Found and filled ${gradesFound} grades!`, 'success');
+        calculateAverages(); // Recalculate everything
+    } else {
+        showToast('🤔 No matching subjects or grades found in the image.', 'info');
+    }
+}
 
             function calculateAverages() {
 try {
@@ -976,51 +933,32 @@ function updateNavPic(src) {
 
 // UPDATED: Save Session (now generates QR)
 function saveSession() {
-    const tableData = [];
-    document.querySelectorAll('#gradeTable tbody tr').forEach(row => {
-        const subjectInput = row.querySelector('input[type="text"]');
-        const scoreInputs = Array.from(row.querySelectorAll('input[type="number"]')).map(input => input.value);
-        tableData.push({
-            subject: subjectInput ? subjectInput.value : '',
-            scores: scoreInputs
+    try {
+        const tableData = [];
+        document.querySelectorAll('#gradeTable tbody tr').forEach(row => {
+            const subjectInput = row.querySelector('input[type="text"]');
+            const scoreInputs = Array.from(row.querySelectorAll('input[type="number"]')).map(input => input.value);
+            tableData.push({
+                subject: subjectInput ? subjectInput.value : '',
+                scores: scoreInputs
+            });
         });
-    });
-    const session = {
-        id: Date.now(),
-        timestamp: new Date().toLocaleString(),
-        data: tableData,
-        overallAvg: lastOverallAvg
-    };
-    let sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
-    sessions.unshift(session); // Add to front
-    if (sessions.length > 5) sessions = sessions.slice(0, 5); // Limit to 5
-    localStorage.setItem('savedSessions', JSON.stringify(sessions));
-    loadSessions();
-    // NEW: Generate QR
-    generateQRForSession(session);
-}
-
-// NEW: Generate QR for the current, unsaved session data
-function generateCurrentSessionQR() {
-    const tableData = [];
-    document.querySelectorAll('#gradeTable tbody tr').forEach(row => {
-        const subjectInput = row.querySelector('input[type="text"]');
-        const scoreInputs = Array.from(row.querySelectorAll('input[type="number"]')).map(input => input.value);
-        tableData.push({
-            subject: subjectInput ? subjectInput.value : '',
-            scores: scoreInputs
-        });
-    });
-
-    if (tableData.length === 0) return alert('No data in the table to generate a QR code.');
-
-    const session = {
-        id: 'current-' + Date.now(),
-        timestamp: new Date().toLocaleString() + ' (Unsaved)',
-        data: tableData,
-        overallAvg: lastOverallAvg
-    };
-    generateQRForSession(session);
+        const session = {
+            id: Date.now(),
+            timestamp: new Date().toLocaleString(),
+            data: tableData,
+            overallAvg: lastOverallAvg
+        };
+        let sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
+        sessions.unshift(session); // Add to front
+        if (sessions.length > 5) sessions = sessions.slice(0, 5); // Limit to 5
+        localStorage.setItem('savedSessions', JSON.stringify(sessions));
+        loadSessions();
+        showToast('Session saved successfully!', 'success');
+    } catch (error) {
+        console.error('Failed to save session:', error);
+        showToast('Error saving session. See console for details.', 'error');
+    }
 }
 
 function loadSessions() {
@@ -1042,14 +980,6 @@ function loadSessions() {
         loadBtn.textContent = 'Load';
         loadBtn.onclick = () => loadSession(session.id);
         div.appendChild(loadBtn);
-
-        // QR button
-        const qrBtn = document.createElement('button');
-        qrBtn.className = 'small-btn';
-        qrBtn.style.backgroundColor = '#1abc9c';
-        qrBtn.textContent = 'QR';
-        qrBtn.onclick = () => generateQRForSession(session);
-        div.appendChild(qrBtn);
 
         // Delete button
         const deleteBtn = document.createElement('button');
@@ -1435,6 +1365,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('calculate').addEventListener('click', calculateAverages);
     document.getElementById('resetSemesters').addEventListener('click', resetSemesters); // NEW
 
+    // NEW: OCR Event Listeners
+    const scanBtn = document.getElementById('scanGradesBtn');
+    const imageInput = document.getElementById('gradeImageInput');
+    if (scanBtn && imageInput) {
+        scanBtn.addEventListener('click', () => imageInput.click());
+        imageInput.addEventListener('change', (e) => scanGrades(e.target.files[0]));
+    }
+
     // Event delegation for remove buttons (dynamic)
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('remove-btn')) {
@@ -1477,10 +1415,4 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSettings();
     toggleDownloadBtns(false);
     showSection('grades'); // This will also set initial SEO meta
-
-    // NEW: Close QR modal on outside click
-    document.getElementById('qrModal').addEventListener('click', function(e) {
-        if (e.target === this) closeQRModal();
-    });
-
 });

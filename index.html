@@ -79,13 +79,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Chart.js for visualizations (using a specific version to resolve source map warnings) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <!-- EmailJS for contact form -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-    <!-- NEW: QR Code Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script> <!-- For generating QRs -->
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script> <!-- For scanning QRs -->
-    <!-- NEW: Tesseract.js for OCR -->
     <!-- Load Firebase config from generated file -->
     <script src="firebase-config.js"></script>
 
@@ -199,21 +197,6 @@
         </div>
     </div>
 
-    <!-- NEW: Toast Notification Container -->
-    <div id="toast-container"></div>
-
-    <!-- NEW: QR Scan Modal -->
-    <div id="qrModal" class="qr-modal">
-        <div class="qr-modal-content">
-            <span class="qr-close" onclick="closeQRModal()">&times;</span>
-            <h3>📱 Scan QR to Load Session</h3>
-            <p>Point your camera at the QR code.</p>
-            <video id="qrVideo" autoplay playsinline></video>
-            <div id="qrStatus" class="qr-status">Loading camera...</div>
-            <button onclick="closeQRModal()" class="small-btn">Cancel</button>
-        </div>
-    </div>
-
     <!-- NEW: Hidden file input for Grade Scan -->
         <div class="container">
             <!-- Wrapped: Grades Section -->
@@ -225,6 +208,13 @@
                             <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                         <span>Add Subject</span>
+                    </button>
+                    <button id="scanGradesBtn" title="Scan grades from an image">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            <path d="M14.5 9.5a1 1 0 0 1-2 0 1 1 0 0 1 2 0zM9.5 14.5a1 1 0 0 1-2 0 1 1 0 0 1 2 0z"></path>
+                        </svg>
+                        <span>Scan Grades</span>
                     </button>
                     <div class="download-buttons">
                         <button id="downloadBtn" style="display: none;" onclick="downloadCSV()" title="Export as CSV file">📄 CSV</button>
@@ -289,6 +279,7 @@
         </section>
 
         <!-- Assistant Section (now hidden by default, accessible via floating chat) -->
+        <input type="file" id="gradeImageInput" accept="image/*" style="display: none;">
         <section id="ai-section" class="ai-section" style="display: none;">
             <h1>🤖 Assistant</h1>
             <div class="ai-content">
@@ -493,9 +484,7 @@
                             <h3>💾 Saved Sessions</h3>
                             <p>Save your current grades to load later or generate a QR code for quick scanning.</p>
                             <div class="session-controls">
-                                <button onclick="saveSession()" class="small-btn">Save & Get QR</button>
-                                <button onclick="generateCurrentSessionQR()" class="small-btn secondary-btn">Generate QR Only</button>
-                                <button onclick="startQRScan()" class="small-btn secondary-btn">📱 Scan to Load</button>
+                                <button onclick="saveSession()" class="small-btn">Save Current Session</button>
                             </div>
                             <ul id="sessionList" class="session-list"></ul>
                         </div>
@@ -737,6 +726,9 @@
             </div>
         </div>
     </footer>
+
+<!-- Toast Notification Container -->
+<div id="toast-container" class="toast-container"></div>
 <!-- Link to external JavaScript file -->
 <script src="script.js" defer></script>
 </body>
