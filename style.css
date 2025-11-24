@@ -755,14 +755,22 @@ footer {
     margin: 0 auto;
 }
 .profile-info-grid {
-    display: none; /* Hidden by default */
-    grid-template-columns: 1fr 2fr;
-    gap: 30px;
+    display: none; /* Hidden by default, shown with .active class */
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap; /* Allow columns to wrap on smaller screens */
+    gap: 20px;
     max-width: 1000px;
     margin: 0 auto;
 }
 .profile-info-grid.active {
-    display: grid;
+    display: flex;
+}
+.profile-grid-left {
+    flex: 1 1 300px; /* Flex-grow, flex-shrink, and base width */
+}
+.profile-grid-right {
+    flex: 2 1 500px; /* Takes up more space, but can shrink */
 }
 .change-pic-btn {
     position: absolute;
@@ -845,6 +853,10 @@ footer {
     display: flex;
     gap: 8px;
 }
+.session-card-info p {
+    font-size: 13px; /* Slightly smaller for better fit */
+    color: #666;
+}
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -917,9 +929,9 @@ body.dark-mode .login-section {
     gap: 20px;
     margin-top: 20px;
 }
-@media (max-width: 768px) {
+@media (max-width: 992px) { /* Changed breakpoint for better tablet view */
     .profile-info-grid {
-        grid-template-columns: 1fr;
+        flex-direction: column; /* Stack columns vertically */
     }
 }
 /* NEW: QR Scan Modal Styling */

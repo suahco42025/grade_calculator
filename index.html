@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grade Calculator | Free Online GPA & Average Tool with PDF/CSV Export</title>
+    <title>Grade Calculator | Free GPA & Average Tool | PDF & CSV Export</title>
     <meta name="description" content="Track grades across periods & exams with our free Grade Matrix Calculator. Calculate averages, export to PDF/CSV, save sessions. Ideal for students & teachers—mobile-friendly & secure.">
     <meta name="keywords" content="grade calculator, GPA tool, average calculator, student grades, exam tracker, PDF export, online grading">
     <meta name="author" content="Grade Calculator Team">
@@ -65,27 +65,17 @@
     <!-- Google Verification -->
     <meta name="google-site-verification" content="qUjhpW1KYde7nCoqxXWlRgPTK_cqp92DLaia1XKVBp0" />
 
-    <!-- Noscript Fallback -->
-    <noscript>
-        <style>body { padding: 20px; } .container { display: block !important; }</style>
-        <div style="text-align: center; padding: 50px; background: #f4f7fa;">
-            <h1>Grade Calculator</h1>
-            <p>Enable JavaScript to use the full interactive tool. Track grades, calculate averages, and export reports.</p>
-            <a href="mailto:mr.suah19@gmail.com">Contact Us</a>
-        </div>
-    </noscript>
-
     <!-- jsPDF + autoTable for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
     <!-- Chart.js for visualizations (using a specific version to resolve source map warnings) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
     <!-- Tesseract.js for OCR -->
-    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js' defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js" defer></script>
     <!-- EmailJS for contact form -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" defer></script>
     <!-- Load Firebase config from generated file -->
-    <script src="firebase-config.js"></script>
+    <script src="firebase-config.js" defer></script>
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -114,8 +104,70 @@
     </script>
     <!-- Link to external stylesheet -->
     <link rel="stylesheet" href="style.css">
+    <style>
+        .profile-pic {
+            border-radius: 1px;
+        }
+
+        /* NEW: Styles for the enhanced session list */
+        .session-list {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Space between session cards */
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #f9f9f9; /* Light background for the card */
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .session-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-color: #ccc;
+        }
+
+        .session-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .session-item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Style for the empty session message */
+        #noSessionsMessage.empty-state-message {
+            text-align: center;
+            padding: 40px 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px dashed #d0d0d0;
+            color: #777;
+        }
+    </style>
 </head>
 <body>
+    <!-- Noscript Fallback -->
+    <noscript>
+        <style>body { padding: 20px; } .container { display: block !important; }</style>
+        <div style="text-align: center; padding: 50px; background: #f4f7fa;">
+            <h1>Grade Calculator</h1>
+            <p>Enable JavaScript to use the full interactive tool. Track grades, calculate averages, and export reports.</p>
+            <a href="mailto:mr.suah19@gmail.com">Contact Us</a>
+        </div>
+    </noscript>
+
     <!-- NEW: Mandatory Login Section (visible by default) -->
     <section id="login-section" class="login-section">
         <div class="auth-card">
@@ -188,7 +240,7 @@
             <div class="ai-message ai">Hi! I'm Mother Suah. Ask me anything about your grades, study advice, or how to use this tool.</div>
         </div>
         <div class="floating-chat-input">
-            <input type="text" id="floatingChatInput" placeholder="Type your question..." onkeypress="handleFloatingKeyPress(event)">
+            <input type="text" id="floatingChatInput" placeholder="Type your question..." onkeypress="handleFloatingKeyPress(event)" aria-label="Chat with AI assistant">
             <button onclick="sendMessageToFloatingAI()">Send</button>
         </div>
         <div id="floatingChatStatus" class="floating-chat-status"></div>
@@ -200,6 +252,7 @@
     <!-- NEW: Hidden file input for Grade Scan -->
         <div class="container">
             <!-- Wrapped: Grades Section -->
+        <h1 style="display: none;">Grade Calculator</h1> <!-- SEO: Main page heading -->
         <section id="grades-section" class="grades-section active">
             <div class="grades-header">
                 <div class="controls">
@@ -281,7 +334,7 @@
         <!-- Assistant Section (now hidden by default, accessible via floating chat) -->
         <input type="file" id="gradeImageInput" accept="image/*" style="display: none;">
         <section id="ai-section" class="ai-section" style="display: none;">
-            <h1>🤖 Assistant</h1>
+            <h2>🤖 Assistant</h2>
             <div class="ai-content">
                 <p style="text-align: center; color: #666;">Ask me anything about grades, study tips, or how to use this tool! (Powered by OpenAI)</p>
                 <div class="ai-chat-container">
@@ -289,7 +342,7 @@
                         <div class="ai-message ai">Hi! I'm Mother Suah. Ask me anything about your grades, study advice, or how to use this tool.</div>
                     </div>
                     <div class="ai-chat-input">
-                        <input type="text" id="aiChatInput" placeholder="Type your question..." onkeypress="handleKeyPress(event)">
+                        <input type="text" id="aiChatInput" placeholder="Type your question..." onkeypress="handleKeyPress(event)" aria-label="Chat with AI assistant in full view">
                         <button onclick="sendMessageToAI()">Send</button>
                     </div>
                 </div>
@@ -302,7 +355,7 @@
         <!-- Help Section (hidden by default) -->
         <section id="help-section" class="help-section" style="display: none;">
             <div class="help-header">
-                <h1>Help & Guide</h1>
+                <h2>Help & Guide</h2>
                 <p>Find answers to common questions and learn how to use the tool effectively.</p>
             </div>
             
@@ -377,7 +430,7 @@
         <!-- Settings Section (hidden by default) -->
         <section id="settings-section" class="settings-section" style="display: none;">
             <div class="settings-header">
-                <h1>Application Settings</h1>
+                <h2>Application Settings</h2>
                 <p>Customize your Grade Calculator experience.</p>
             </div>
             
@@ -395,10 +448,10 @@
                 
                 <div class="setting-card">
                     <h3>⚠️ Low Score Threshold</h3>
-                    <p>Highlight scores below this value. Current: <strong id="currentThreshold">70</strong></p>
+                    <label for="thresholdInput" class="setting-label">Highlight scores below this value. Current: <strong id="currentThreshold">70</strong></label>
                     <div class="setting-input-group">
                         <input type="number" id="thresholdInput" value="70" min="0" max="100" onchange="updateThreshold()">
-                        <button onclick="applyThreshold()" class="small-btn">Apply</button>
+                        <button onclick="applyThreshold()" class="small-btn" aria-label="Apply new low score threshold">Apply</button>
                     </div>
                 </div>
                 
@@ -415,19 +468,19 @@
                 
                 <div class="setting-card">
                     <h3>📚 Default Subjects</h3>
-                    <p>Comma-separated list for new tables.</p>
+                    <label for="defaultSubjectsInput" class="setting-label">Comma-separated list for new tables.</label>
                     <div class="setting-input-group">
                         <input type="text" id="defaultSubjectsInput" value="Mathematics,English,Science,History" placeholder="e.g., Math,English,Physics">
-                        <button onclick="saveDefaultSubjects()" class="small-btn">Save</button>
+                        <button onclick="saveDefaultSubjects()" class="small-btn" aria-label="Save default subjects">Save</button>
                     </div>
                 </div>
                 
                 <div class="setting-card">
                     <h3>🏫 School Information</h3>
-                    <p>Set a school name for PDF report titles.</p>
+                    <label for="schoolNameInput" class="setting-label">Set a school name for PDF report titles.</label>
                     <div class="setting-input-group">
                         <input type="text" id="schoolNameInput" placeholder="e.g., University of Excellence">
-                        <button onclick="saveSchoolName()" class="small-btn">Save</button>
+                        <button onclick="saveSchoolName()" class="small-btn" aria-label="Save school name">Save</button>
                     </div>
                 </div>
 
@@ -456,7 +509,7 @@
         <!-- Profile Section (hidden by default) -->
         <section id="profile-section" class="profile-section" style="display: none;">
             <div class="profile-header">
-                <h1>My Profile</h1>
+                <h2>My Profile</h2>
                 <p>Manage your account, view stats, and access saved sessions.</p>
             </div>
             
@@ -465,28 +518,37 @@
 
                 <!-- Profile Info (shown if logged in) -->
                 <div id="profileInfo" class="profile-info-grid">
-                    <!-- Left Column: User Card -->
-                    <div class="profile-user-card">
-                        <div class="profile-pic-container">
-                            <img id="profilePicPreview" src="Suahco4.png" alt="User profile picture preview" class="profile-pic-preview">
-                        </div>
-                        <h2 id="userName"></h2>
-                        <p id="userEmail"></p>
-                        <div class="profile-edit-form">
-                            <input type="text" id="updateNameInput" placeholder="Update display name">
-                            <button onclick="saveProfile()" class="small-btn">Save</button>
-                        </div>
-                        <p class="small-text">Your email is managed by your login provider.</p>
-                    </div>
-                    <!-- Right Column: Detail Cards -->
-                    <div class="profile-details-cards">
-                        <div class="profile-card">
-                            <h3>💾 Saved Sessions</h3>
-                            <p>Save your current grades to load later or generate a QR code for quick scanning.</p>
-                            <div class="session-controls">
-                                <button onclick="saveSession()" class="small-btn">Save Current Session</button>
+                    <div class="profile-grid-left">
+                        <!-- User Card -->
+                        <div class="profile-user-card">
+                            <div class="profile-pic-container">
+                                <img id="profilePicPreview" src="Suahco4.png" alt="User profile picture preview" class="profile-pic">
                             </div>
-                            <ul id="sessionList" class="session-list"></ul>
+                            <input type="text" id="userName" class="profile-name-display" placeholder="Your Name" aria-label="Your Name">
+                            <input type="email" id="userEmail" class="profile-email-display" placeholder="your.email@example.com" aria-label="Your Email Address">
+                            <div class="profile-edit-form">
+                                <button onclick="saveProfile()" class="small-btn" aria-label="Save profile changes">Save Changes</button>
+                            </div>
+                            <p class="small-text">Click "Save Changes" to update your profile.</p>
+                        </div>
+                    </div>
+                    <div class="profile-grid-right">
+                        <!-- Detail Cards -->
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <h3>💾 Saved Sessions</h3>
+                                <p>Save your current grades to load later or access from another device.</p>
+                            </div>
+                            <div class="session-controls">
+                                <button onclick="saveSession()" class="small-btn primary-btn" aria-label="Save current grades as a new session">Save Current Session</button>
+                            </div>
+                            <div id="sessionList" class="session-list">
+                                <!-- Dynamic session cards will be inserted here by script.js.
+                                     Example structure:
+                                     <div class="session-item"><span class="session-name">Session from 2025-11-24</span><div class="session-item-actions"><button class="small-btn">Load</button><button class="small-btn warning-btn">Delete</button></div></div>
+                                -->
+                                <p id="noSessionsMessage" class="empty-state-message">You have no saved sessions. <br>Click "Save Current Session" to get started!</p>
+                            </div>
                         </div>
                         <div class="profile-card">
                             <h3>📊 Quick Stats & Visualizations</h3>
@@ -510,7 +572,7 @@
 
         <!-- Contact Section (hidden by default) -->
         <section id="contact-section" class="contact-section" style="display: none;">
-            <h1>Contact Us</h1>
+            <h2>Contact Us</h2>
             <p class="contact-intro">Have a question, feedback, or need support? We'd love to hear from you!</p>
             
             <div class="contact-content">
@@ -558,7 +620,7 @@
 
         <!-- Privacy Policy Section (hidden by default) -->
         <section id="privacy-section" class="help-section" style="display: none;">
-            <h1>Privacy Policy</h1>
+            <h2>Privacy Policy</h2>
             
             <div class="help-content">
                 <div class="help-card">
@@ -646,7 +708,7 @@
 
         <!-- Terms of Service Section (hidden by default) -->
         <section id="terms-section" class="help-section" style="display: none;">
-            <h1>Terms of Service</h1>
+            <h2>Terms of Service</h2>
             
             <div class="help-content">
                 <div class="help-card">

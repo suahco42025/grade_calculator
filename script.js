@@ -434,13 +434,13 @@ function addSubjectRow(defaultName = '') {
     
     // Build the row with the new column order
     let scoreInputs1 = '';
-    for (let i = 0; i < 4; i++) scoreInputs1 += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    for (let i = 0; i < 4; i++) scoreInputs1 += `<td><input type="number" min="0" max="100" placeholder="Score" aria-label="Score for ${columnNames[i]}"></td>`;
     let scoreInputs2 = '';
-    for (let i = 4; i < 8; i++) scoreInputs2 += `<td><input type="number" min="0" max="100" placeholder="Score"></td>`;
+    for (let i = 4; i < 8; i++) scoreInputs2 += `<td><input type="number" min="0" max="100" placeholder="Score" aria-label="Score for ${columnNames[i]}"></td>`;
 
     row.innerHTML = `
         <td>
-            <input type="text" value="${defaultName}" placeholder="Enter subject name">
+            <input type="text" value="${defaultName}" placeholder="Enter subject name" aria-label="Subject Name, row ${subjectCount}">
             <button class="remove-btn">Remove</button>
         </td>
         ${scoreInputs1}
@@ -963,35 +963,42 @@ function saveSession() {
 
 function loadSessions() {
     const sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
-    const list = document.getElementById('sessionList');
-    list.innerHTML = '';
-    sessions.forEach(session => {
-        const li = document.createElement('li');
-        li.className = 'session-item';
+    const sessionList = document.getElementById('sessionList');
+    const noSessionsMessage = document.getElementById('noSessionsMessage');
+    sessionList.innerHTML = ''; // Clear previous list
 
-        const span = document.createElement('span');
-        span.textContent = `${session.timestamp} (Avg: ${session.overallAvg}%)`;
+    if (sessions.length === 0) {
+        if (noSessionsMessage) noSessionsMessage.style.display = 'block';
+    } else {
+        if (noSessionsMessage) noSessionsMessage.style.display = 'none';
+        sessions.forEach(session => {
+            const sessionCard = document.createElement('div');
+                  sessionCard.className = 'session-card';
 
-        const div = document.createElement('div');
+            // Calculate number of subjects for the summary
+            const subjectCount = session.data ? session.data.length : 0;
+            const overallAvg = session.overallAvg ? parseFloat(session.overallAvg).toFixed(2) : 'N/A';
 
-        // Load button
-        const loadBtn = document.createElement('button');
-        loadBtn.className = 'small-btn';
-        loadBtn.textContent = 'Load';
-        loadBtn.onclick = () => loadSession(session.id);
-        div.appendChild(loadBtn);
+            sessionCard.innerHTML = `
+                <div class="session-card-info">
+                    <h4>Session from ${session.timestamp}</h4>
+                    <p>Subjects: ${subjectCount} | Overall Avg: ${overallAvg}%</p>
+                </div>
+                      <div class="session-actions">
+                    <button class="small-btn primary-btn">Load</button>
+                    <button class="small-btn secondary-btn">Delete</button>
+                </div>
+            `;
 
-        // Delete button
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'remove-btn';
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.onclick = () => deleteSession(session.id);
-        div.appendChild(deleteBtn);
+            // Add event listeners to the new buttons
 
-        li.appendChild(span);
-        li.appendChild(div);
-        list.appendChild(li);
-    });
+
+            sessionCard.querySelector('.primary-btn').onclick = () => loadSession(session.id);
+            sessionCard.querySelector('.secondary-btn').onclick = () => deleteSession(session.id);
+
+            sessionList.appendChild(sessionCard);
+        });
+    }
 }
 
 // UPDATED: Load session (now auto-recalculates)
@@ -1022,6 +1029,7 @@ function deleteSession(id) {
         let sessions = JSON.parse(localStorage.getItem('savedSessions')) || [];
         sessions = sessions.filter(s => s.id !== id);
         localStorage.setItem('savedSessions', JSON.stringify(sessions));
+        showToast('Session deleted.', 'info');
         loadSessions();
     }
 }
