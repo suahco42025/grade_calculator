@@ -224,16 +224,16 @@ if (window.location.hostname === 'www.suahco4.github.io') {
 // Dynamic Meta Updates for SEO
 function updateMetaForSection(section) {
     const titles = {
-        'grades': 'Grade Calculator | Free Online GPA & Average Tool with PDF/CSV Export',
+        'grades': 'Grade Calculator | Free GPA & Average Tool with Export',
         'help': 'Help & Guide | Grade Calculator - Free GPA Tool',
-        'settings': 'Settings | Grade Calculator - Customize Your Experience',
-        'profile': 'Profile | Grade Calculator - Manage Account & Sessions',
+        'settings': 'Settings | Customize Your Grade Calculator Experience',
+        'profile': 'Profile | Manage Your Grade Calculator Account',
         'contact': 'Contact Us | Grade Calculator - Get Support',
         'ai': 'Assistant | Grade Calculator - Smart Study Help',
         'privacy': 'Privacy Policy | Grade Calculator - Data Protection',
         'terms': 'Terms of Service | Grade Calculator - User Agreement'
     };
-    document.title = titles[section] || 'Grade Calculator | Free Online GPA Tool';
+    document.title = titles[section] || 'Grade Calculator | Free GPA & Average Tool';
     
     // Update meta description
     const metaDesc = document.querySelector('meta[name="description"]');
